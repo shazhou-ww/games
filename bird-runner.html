@@ -200,7 +200,7 @@ let speed    = SPEED_INIT;
 let obstacles = [];
 let mathGate  = null;
 let activeMath = null; // { answer, options, gate3d }
-let lastObstacleZ = -OBSTACLE_SPAWN_DIST;
+let lastObstacleZ = 0; // unused, kept for compat
 let nextMathAt    = MATH_SPAWN_EVERY;
 let cameraShake   = { x: 0, y: 0, ttl: 0 };
 let score         = 0;
@@ -718,10 +718,13 @@ function shuffleArray(arr) {
   return arr;
 }
 
+let nextObstacleAt = 40; // distance at which next obstacle spawns
+
 function spawnObstacle(worldZ) {
   const types = [OBS.GROUND, OBS.LEFT, OBS.RIGHT];
   const type = types[Math.floor(Math.random() * types.length)];
-  buildObstacle(type, worldZ - OBSTACLE_SPAWN_DIST);
+  // Always place at fixed distance ahead of camera
+  buildObstacle(type, -OBSTACLE_SPAWN_DIST);
 }
 
 function cleanupObstacles() {
@@ -827,7 +830,7 @@ let worldZ = 0; // how far we've moved in world Z (bird stays at 0, world moves)
 function startGame() {
   // Reset state
   distance = 0; elapsed = 0; speed = SPEED_INIT; score = 0;
-  worldZ = 0; lastObstacleZ = 30; nextMathAt = MATH_SPAWN_EVERY;
+  worldZ = 0; nextObstacleAt = 30; nextMathAt = MATH_SPAWN_EVERY;
   bird.x = 0; bird.y = BIRD_Y_GROUND; bird.velY = 0;
   bird.ducking = false; bird.hitCooldown = 0;
   bird.mesh.position.set(0, BIRD_Y_GROUND, 0);
@@ -883,17 +886,14 @@ function update(dt) {
   // Recycle ground tiles
   recycleTiles(0);
 
-  // Spawn obstacles (minimum 15m spacing, up to 25m)
-  const minSpacing = 15 + Math.random() * 10;
-  if (worldZ - lastObstacleZ > minSpacing) {
+  // Spawn obstacles based on distance traveled
+  if (distance >= nextObstacleAt) {
     // Don't spawn if there's an active math gate ahead
     if (!mathGate) {
       spawnObstacle(worldZ);
-      lastObstacleZ = worldZ;
-    } else {
-      // Still advance the counter so we don't bunch after gate
-      lastObstacleZ = worldZ;
     }
+    // Schedule next obstacle 15-25m later regardless
+    nextObstacleAt = distance + 15 + Math.random() * 10;
   }
 
   // Spawn math gate
