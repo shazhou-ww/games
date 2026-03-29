@@ -174,8 +174,8 @@ const SPEED_MAX      = 22;
 const SPEED_INC      = 0.0008; // per frame
 const BIRD_Y_GROUND  = 1.0;    // bird centre when standing
 const BIRD_Y_DUCK    = 0.4;
-const JUMP_VY        = 9;
-const GRAVITY        = 24;
+const JUMP_VY        = 12;
+const GRAVITY        = 18;
 const OBSTACLE_SPAWN_DIST = 90; // spawn this far ahead
 const OBSTACLE_REMOVE_Z   = 4;  // remove once behind camera
 
@@ -584,33 +584,34 @@ function buildObstacle(type, z) {
     g.userData.action = OBS.OVERHEAD;
   }
   else if (type === OBS.LEFT) {
-    // Blue left side blocker
-    const geo = new THREE.BoxGeometry(TRACK_WIDTH * 0.48, 2.8, 2.2);
+    // Blue left+center blocker — must dodge RIGHT
+    const geo = new THREE.BoxGeometry(TRACK_WIDTH * 0.7, 2.8, 2.2);
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(-TRACK_WIDTH * 0.26, 1.4, 0);
+    mesh.position.set(-TRACK_WIDTH * 0.15, 1.4, 0);
     mesh.castShadow = true;
     g.add(mesh);
     const wireframe = new THREE.Mesh(
-      new THREE.BoxGeometry(TRACK_WIDTH * 0.5, 2.9, 2.3), glow
+      new THREE.BoxGeometry(TRACK_WIDTH * 0.72, 2.9, 2.3), glow
     );
-    wireframe.position.set(-TRACK_WIDTH * 0.26, 1.45, 0);
+    wireframe.position.set(-TRACK_WIDTH * 0.15, 1.45, 0);
     g.add(wireframe);
-    hitBox    = { xmin: -TRACK_WIDTH * 0.5, xmax: -TRACK_WIDTH * 0.02, ymin: 0, ymax: 2.8 };
+    hitBox    = { xmin: -TRACK_WIDTH * 0.5, xmax: TRACK_WIDTH * 0.2, ymin: 0, ymax: 2.8 };
     arrowText = '➡';
     g.userData.action = OBS.LEFT;
   }
   else { // RIGHT
-    const geo = new THREE.BoxGeometry(TRACK_WIDTH * 0.48, 2.8, 2.2);
+    // Blue right+center blocker — must dodge LEFT
+    const geo = new THREE.BoxGeometry(TRACK_WIDTH * 0.7, 2.8, 2.2);
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(TRACK_WIDTH * 0.26, 1.4, 0);
+    mesh.position.set(TRACK_WIDTH * 0.15, 1.4, 0);
     mesh.castShadow = true;
     g.add(mesh);
     const wireframe = new THREE.Mesh(
-      new THREE.BoxGeometry(TRACK_WIDTH * 0.5, 2.9, 2.3), glow
+      new THREE.BoxGeometry(TRACK_WIDTH * 0.72, 2.9, 2.3), glow
     );
-    wireframe.position.set(TRACK_WIDTH * 0.26, 1.45, 0);
+    wireframe.position.set(TRACK_WIDTH * 0.15, 1.45, 0);
     g.add(wireframe);
-    hitBox    = { xmin: TRACK_WIDTH * 0.02, xmax: TRACK_WIDTH * 0.5, ymin: 0, ymax: 2.8 };
+    hitBox    = { xmin: -TRACK_WIDTH * 0.2, xmax: TRACK_WIDTH * 0.5, ymin: 0, ymax: 2.8 };
     arrowText = '⬅';
     g.userData.action = OBS.RIGHT;
   }
