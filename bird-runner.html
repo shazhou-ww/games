@@ -317,14 +317,18 @@ function addGridLines(tileMesh, idx) {
   tileMesh.add(lines);
 }
 
+let laneStripes = [];
 function buildLaneStripes() {
   const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 });
   [-1.5, 1.5].forEach(x => {
-    const geo  = new THREE.PlaneGeometry(0.2, TRACK_LENGTH * 2);
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(x, 0.02, -TRACK_LENGTH);
-    scene.add(mesh);
+    for (let z = 10; z > -OBSTACLE_SPAWN_DIST * 1.5; z -= 6) {
+      const geo  = new THREE.PlaneGeometry(0.15, 3);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(x, 0.02, z);
+      scene.add(mesh);
+      decoObjects.push(mesh);
+    }
   });
 }
 
@@ -344,41 +348,55 @@ function recycleTiles(camWorldZ) {
 }
 
 function buildTrack() {
-  // Guardrails on sides
+  // Guardrails on sides — short segments that recycle
   const railMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-  const railGeo = new THREE.BoxGeometry(0.15, 0.6, TRACK_LENGTH * 2);
-  [-TRACK_WIDTH/2, TRACK_WIDTH/2].forEach(x => {
-    const rail = new THREE.Mesh(railGeo, railMat);
-    rail.position.set(x, 0.3, -TRACK_LENGTH);
-    scene.add(rail);
-  });
-  // Posts every 10m
-  for (let z = 0; z > -TRACK_LENGTH * 2; z -= 10) {
+  for (let z = 10; z > -OBSTACLE_SPAWN_DIST * 1.5; z -= 8) {
     [-TRACK_WIDTH/2, TRACK_WIDTH/2].forEach(x => {
+      const railGeo = new THREE.BoxGeometry(0.15, 0.6, 8);
+      const rail = new THREE.Mesh(railGeo, railMat);
+      rail.position.set(x, 0.3, z);
+      scene.add(rail);
+      decoObjects.push(rail);
+      // Post
       const postGeo = new THREE.BoxGeometry(0.2, 1.2, 0.2);
-      const post    = new THREE.Mesh(postGeo, railMat);
-      post.position.set(x, 0.6, z);
+      const post = new THREE.Mesh(postGeo, railMat);
+      post.position.set(x, 0.6, z + 4);
       scene.add(post);
+      decoObjects.push(post);
     });
   }
 }
 
+let decoObjects = []; // trees and lamps that need to move with the world
+
 function buildSideDeco() {
-  // Trees and lamps
-  for (let z = 10; z > -TRACK_LENGTH * 2; z -= 15) {
+  // Trees and lamps — spawn a pool that we'll recycle
+  for (let z = 10; z > -OBSTACLE_SPAWN_DIST * 1.5; z -= 15) {
     [-8, 8].forEach(x => {
       if (Math.random() < 0.7) {
         const tree = buildTree();
         tree.position.set(x + (Math.random() - 0.5) * 3, 0, z);
         scene.add(tree);
+        decoObjects.push(tree);
       }
       if (Math.random() < 0.3) {
         const lamp = buildLamp();
         lamp.position.set(x * 0.7, 0, z);
         scene.add(lamp);
+        decoObjects.push(lamp);
       }
     });
   }
+}
+
+function recycleDecoObjects(dz) {
+  decoObjects.forEach(obj => {
+    obj.position.z += dz;
+    // If it's behind the camera, respawn it far ahead
+    if (obj.position.z > 15) {
+      obj.position.z -= OBSTACLE_SPAWN_DIST * 2.5;
+    }
+  });
 }
 
 function buildTree() {
@@ -508,16 +526,25 @@ function buildBird() {
 // ─── Obstacle builder ─────────────────────────────────────────────────────────
 function makeTextSprite(text, scale = 1) {
   const canvas = document.createElement('canvas');
-  canvas.width  = 128; canvas.height = 128;
+  canvas.width  = 512; canvas.height = 256;
   const ctx = canvas.getContext('2d');
-  ctx.font = '80px Arial';
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Auto-size font based on text length
+  const fontSize = text.length > 8 ? 60 : text.length > 4 ? 80 : 120;
+  ctx.font = `bold ${fontSize}px Arial`;
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(text, 64, 64);
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 4;
+  ctx.strokeText(text, canvas.width / 2, canvas.height / 2);
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
   const tex  = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
   const mat  = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
   const spr  = new THREE.Sprite(mat);
-  spr.scale.set(scale, scale, 1);
+  const aspect = canvas.width / canvas.height;
+  spr.scale.set(scale * aspect, scale, 1);
   return spr;
 }
 
@@ -864,12 +891,13 @@ function update(dt) {
   obstacles.forEach(o => { o.position.z += dz; });
   if (mathGate) mathGate.position.z += dz;
   groundTiles.forEach(t => { t.position.z += dz; });
+  recycleDecoObjects(dz);
 
   // Recycle ground tiles
   recycleTiles(0);
 
-  // Spawn obstacles
-  if (worldZ - lastObstacleZ > 30 + Math.random() * 25) {
+  // Spawn obstacles (minimum 45m spacing, up to 65m)
+  if (worldZ - lastObstacleZ > 45 + Math.random() * 20) {
     // Don't spawn if there's an active math gate ahead
     if (!mathGate) {
       spawnObstacle(worldZ);
