@@ -903,9 +903,9 @@ function update(dt) {
     // If we've fallen behind (e.g. during math gate), skip ahead
     // rather than spawning a bunch at once
     if (distance - nextObstacleAt > 30) {
-      nextObstacleAt = distance + 15 + Math.random() * 10;
+      nextObstacleAt = distance + 25 + Math.random() * 15;
     } else {
-      nextObstacleAt += 15 + Math.random() * 10;
+      nextObstacleAt += 25 + Math.random() * 15;
     }
   }
 
