@@ -740,10 +740,12 @@ function spawnCourseItems() {
     // Spawn when the item is within OBSTACLE_SPAWN_DIST metres ahead
     if (item.distance <= distance + OBSTACLE_SPAWN_DIST) {
       item.spawned = true;
+      // Place at correct z position based on how far ahead it is
+      const zPos = -(item.distance - distance);
       if (item.type === 'math') {
-        buildMathGate(-OBSTACLE_SPAWN_DIST);
+        buildMathGate(zPos);
       } else {
-        buildObstacle(item.obsType, -OBSTACLE_SPAWN_DIST);
+        buildObstacle(item.obsType, zPos);
       }
       courseIndex++;
     } else {
