@@ -584,34 +584,34 @@ function buildObstacle(type, z) {
     g.userData.action = OBS.OVERHEAD;
   }
   else if (type === OBS.LEFT) {
-    // Blue left+center blocker — must dodge RIGHT
-    const geo = new THREE.BoxGeometry(TRACK_WIDTH * 0.7, 2.8, 2.2);
+    // Blue left+center blocker — must dodge RIGHT (tall, can't jump over)
+    const geo = new THREE.BoxGeometry(TRACK_WIDTH * 0.7, 6, 2.2);
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(-TRACK_WIDTH * 0.15, 1.4, 0);
+    mesh.position.set(-TRACK_WIDTH * 0.15, 3, 0);
     mesh.castShadow = true;
     g.add(mesh);
     const wireframe = new THREE.Mesh(
-      new THREE.BoxGeometry(TRACK_WIDTH * 0.72, 2.9, 2.3), glow
+      new THREE.BoxGeometry(TRACK_WIDTH * 0.72, 6.1, 2.3), glow
     );
-    wireframe.position.set(-TRACK_WIDTH * 0.15, 1.45, 0);
+    wireframe.position.set(-TRACK_WIDTH * 0.15, 3.05, 0);
     g.add(wireframe);
-    hitBox    = { xmin: -TRACK_WIDTH * 0.5, xmax: TRACK_WIDTH * 0.2, ymin: 0, ymax: 2.8 };
+    hitBox    = { xmin: -TRACK_WIDTH * 0.5, xmax: TRACK_WIDTH * 0.2, ymin: 0, ymax: 8 };
     arrowText = '➡';
     g.userData.action = OBS.LEFT;
   }
   else { // RIGHT
-    // Blue right+center blocker — must dodge LEFT
-    const geo = new THREE.BoxGeometry(TRACK_WIDTH * 0.7, 2.8, 2.2);
+    // Blue right+center blocker — must dodge LEFT (tall, can't jump over)
+    const geo = new THREE.BoxGeometry(TRACK_WIDTH * 0.7, 6, 2.2);
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(TRACK_WIDTH * 0.15, 1.4, 0);
+    mesh.position.set(TRACK_WIDTH * 0.15, 3, 0);
     mesh.castShadow = true;
     g.add(mesh);
     const wireframe = new THREE.Mesh(
-      new THREE.BoxGeometry(TRACK_WIDTH * 0.72, 2.9, 2.3), glow
+      new THREE.BoxGeometry(TRACK_WIDTH * 0.72, 6.1, 2.3), glow
     );
-    wireframe.position.set(TRACK_WIDTH * 0.15, 1.45, 0);
+    wireframe.position.set(TRACK_WIDTH * 0.15, 3.05, 0);
     g.add(wireframe);
-    hitBox    = { xmin: -TRACK_WIDTH * 0.2, xmax: TRACK_WIDTH * 0.5, ymin: 0, ymax: 2.8 };
+    hitBox    = { xmin: -TRACK_WIDTH * 0.2, xmax: TRACK_WIDTH * 0.5, ymin: 0, ymax: 8 };
     arrowText = '⬅';
     g.userData.action = OBS.RIGHT;
   }
@@ -730,6 +730,10 @@ function generateCourse() {
     }
     pos += 25 + Math.random() * 15; // 25–40m spacing
   }
+  console.log('[COURSE]', courseItems.length, 'items:', 
+    courseItems.filter(i=>i.type==='math').length, 'math,',
+    courseItems.filter(i=>i.type==='obstacle').length, 'obstacles');
+  console.log('[COURSE] items:', courseItems.map(i=>`${i.type}@${i.distance.toFixed(0)}`).join(', '));
 }
 
 let courseIndex = 0; // next item to check for spawning
