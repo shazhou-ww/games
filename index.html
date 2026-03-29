@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎮 小游戏合集</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .container { max-width: 600px; width: 90%; padding: 40px 30px; background: rgba(255,255,255,0.95); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; }
+  h1 { font-size: 2em; margin-bottom: 10px; }
+  p { color: #666; margin-bottom: 30px; }
+  .games { display: grid; gap: 15px; }
+  a.game { display: flex; align-items: center; gap: 15px; padding: 20px; background: #f8f9fa; border-radius: 12px; text-decoration: none; color: #333; transition: all 0.2s; border: 2px solid transparent; }
+  a.game:hover { border-color: #764ba2; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+  .game .emoji { font-size: 2.5em; }
+  .game .info { text-align: left; }
+  .game .info .title { font-weight: bold; font-size: 1.1em; }
+  .game .info .desc { color: #888; font-size: 0.85em; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🎮 小游戏合集</h1>
+  <p>给公主大人的小游戏们 👑</p>
+  <div class="games">
+    <a class="game" href="bird-runner.html">
+      <span class="emoji">🐦</span>
+      <div class="info">
+        <div class="title">小鸟跑酷</div>
+        <div class="desc">躲障碍 + 答数学题，跑完全程计时打榜！</div>
+      </div>
+    </a>
+    <a class="game" href="sokoban/">
+      <span class="emoji">📦</span>
+      <div class="info">
+        <div class="title">推箱子</div>
+        <div class="desc">经典推箱子益智游戏</div>
+      </div>
+    </a>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎮 推箱子小游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            touch-action: none;
+            overflow: hidden;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .difficulty-btn {
+            padding: 20px;
+            font-size: 20px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+            color: white;
+        }
+
+        .difficulty-btn:active {
+            transform: scale(0.95);
+        }
+
+        .easy { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
+        .medium { background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%); }
+        .hard { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+
+        .game-area { display: none; }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 10px;
+        }
+
+        .info-item {
+            font-size: 16px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .game-board {
+            background: #2c3e50;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 15px;
+            display: inline-block;
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.3);
+            touch-action: none;
+        }
+
+        .board-container {
+            text-align: center;
+            margin-bottom: 15px;
+            touch-action: none;
+        }
+
+        .row { display: flex; line-height: 0; }
+
+        .cell {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            margin: 1px;
+        }
+
+        .wall { background: #34495e; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
+        .floor { background: #ecf0f1; }
+        .target { background: #ffeaa7; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .control-btn {
+            padding: 18px;
+            font-size: 24px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+            transition: transform 0.1s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            min-height: 56px;
+        }
+
+        .control-btn:active { transform: scale(0.92); }
+        .control-btn.empty { background: transparent; box-shadow: none; cursor: default; }
+
+        .action-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 14px;
+            font-size: 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: transform 0.2s;
+        }
+
+        .action-btn:active { transform: scale(0.95); }
+        .undo-btn { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .reset-btn { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .new-btn { background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%); }
+
+        .back-btn {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            grid-column: 1 / -1;
+            margin-top: 8px;
+        }
+
+        .win-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .win-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            animation: bounceIn 0.5s;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .win-title { font-size: 48px; margin-bottom: 20px; }
+        .win-text { font-size: 24px; color: #667eea; margin-bottom: 20px; }
+        .win-stats { font-size: 18px; color: #666; margin-bottom: 30px; }
+
+        @media (max-width: 480px) {
+            h1 { font-size: 24px; }
+            .difficulty-btn { padding: 15px; font-size: 18px; }
+            .control-btn { padding: 14px; min-height: 50px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 推箱子小游戏</h1>
+
+        <div class="menu" id="menu">
+            <button class="difficulty-btn easy" onclick="startGame('easy')">🌱 简单模式</button>
+            <button class="difficulty-btn medium" onclick="startGame('medium')">🌟 中等模式</button>
+            <button class="difficulty-btn hard" onclick="startGame('hard')">🔥 困难模式</button>
+        </div>
+
+        <div class="game-area" id="gameArea">
+            <div class="game-info">
+                <div class="info-item">关卡 <span id="levelNumber">1</span></div>
+                <div class="info-item"><span id="difficultyText"></span></div>
+                <div class="info-item">步数: <span id="steps">0</span></div>
+            </div>
+
+            <div class="board-container" id="boardContainer">
+                <div class="game-board" id="gameBoard"></div>
+            </div>
+
+            <div class="controls">
+                <div class="control-btn empty"></div>
+                <button class="control-btn" onclick="move(0,-1)">⬆️</button>
+                <div class="control-btn empty"></div>
+                <button class="control-btn" onclick="move(-1,0)">⬅️</button>
+                <button class="control-btn" onclick="move(0,1)">⬇️</button>
+                <button class="control-btn" onclick="move(1,0)">➡️</button>
+            </div>
+
+            <div class="action-btns">
+                <button class="action-btn undo-btn" onclick="undo()">↩️ 撤销</button>
+                <button class="action-btn reset-btn" onclick="resetLevel()">🔄 重启</button>
+                <button class="action-btn new-btn" onclick="newLevel()">✨ 新关</button>
+                <button class="action-btn back-btn" onclick="backToMenu()">🏠 返回菜单</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="win-modal" id="winModal">
+        <div class="win-content">
+            <div class="win-title">🎉</div>
+            <div class="win-text">恭喜过关！</div>
+            <div class="win-stats">总步数: <span id="finalSteps"></span></div>
+            <button class="difficulty-btn easy" onclick="nextLevel()" style="margin-bottom:10px">▶️ 下一关</button>
+            <button class="difficulty-btn medium" onclick="backToMenu()">🏠 返回菜单</button>
+        </div>
+    </div>
+
+    <script>
+    // ============================================================
+    //  推箱子 - 反向拉箱子关卡生成（保证 100% 可解）
+    // ============================================================
+
+    // --- 常量 ---
+    const WALL = 1, FLOOR = 0, TARGET = 2;
+    const DIRS = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+
+    // --- 游戏状态 ---
+    const G = {
+        grid: [],       // 底图 (WALL / FLOOR / TARGET)
+        w: 0, h: 0,
+        px: 0, py: 0,  // 玩家
+        boxes: [],      // [{x,y}, ...]
+        targets: [],    // [{x,y}, ...]
+        steps: 0,
+        history: [],    // [{px,py,boxes,steps}]
+        // 初始快照，用于重启
+        initPx: 0, initPy: 0,
+        initBoxes: [],
+        // UI
+        difficulty: 'easy',
+        levelNum: 1
+    };
+
+    // --- 难度配置 ---
+    const CFG = {
+        easy:   { w:7, h:7, boxes:2, pulls:40,  innerWalls:3  },
+        medium: { w:8, h:8, boxes:3, pulls:80,  innerWalls:5  },
+        hard:   { w:9, h:9, boxes:4, pulls:140, innerWalls:7  }
+    };
+
+    // ============================================================
+    //  工具函数
+    // ============================================================
+
+    function inBounds(x,y){ return x>=0 && x<G.w && y>=0 && y<G.h; }
+    function isFloor(x,y){ return inBounds(x,y) && G.grid[y][x] !== WALL; }
+
+    /** 用 BFS 判断 (sx,sy) 能否走到 (tx,ty)，不能穿越 walls 或 blockers 集合 */
+    function bfsReach(sx,sy,tx,ty, blockerSet){
+        if(sx===tx && sy===ty) return true;
+        const key = (x,y) => y*G.w+x;
+        const visited = new Set(); visited.add(key(sx,sy));
+        const q = [{x:sx,y:sy}];
+        while(q.length){
+            const {x,y} = q.shift();
+            for(const {dx,dy} of DIRS){
+                const nx=x+dx, ny=y+dy;
+                if(!isFloor(nx,ny)) continue;
+                const k=key(nx,ny);
+                if(visited.has(k)) continue;
+                if(blockerSet.has(k)) continue;
+                if(nx===tx && ny===ty) return true;
+                visited.add(k);
+                q.push({x:nx,y:ny});
+            }
+        }
+        return false;
+    }
+
+    /** 检查底图（不含箱子）的空地是否全连通 */
+    function gridConnected(grid, w, h){
+        let sx=-1,sy=-1, total=0;
+        for(let y=0;y<h;y++) for(let x=0;x<w;x++) if(grid[y][x]!==WALL){ total++; if(sx<0){sx=x;sy=y;}}
+        if(total===0) return false;
+        const vis = Array.from({length:h},()=>Array(w).fill(false));
+        vis[sy][sx]=true;
+        const q=[{x:sx,y:sy}]; let cnt=1;
+        while(q.length){
+            const {x,y}=q.shift();
+            for(const {dx,dy} of DIRS){
+                const nx=x+dx, ny=y+dy;
+                if(nx>=0&&nx<w&&ny>=0&&ny<h&&!vis[ny][nx]&&grid[ny][nx]!==WALL){
+                    vis[ny][nx]=true; cnt++; q.push({x:nx,y:ny});
+                }
+            }
+        }
+        return cnt===total;
+    }
+
+    // ============================================================
+    //  反向拉箱子生成器
+    //
+    //  原理：从"过关"状态出发（箱子全在目标上，玩家在旁边），
+    //  执行"拉"操作——即正向游戏的逆操作：
+    //    正向：玩家从 A 走到 B，把箱子从 B 推到 C  (A→B→C 共线)
+    //    逆向：箱子从 C 拉回 B，玩家从 B 移到 A
+    //  具体一步拉操作：
+    //    选一个箱子 box(bx,by)，选方向 d=(dx,dy)
+    //    玩家需要在 (bx+dx, by+dy) 位置（箱子"前方"），
+    //    然后玩家退到 (bx+2*dx, by+2*dy)，箱子跟着退到 (bx+dx, by+dy)
+    //    等价于：玩家先走到 pullPos=(bx+dx,by+dy)，
+    //           然后 box 移到 pullPos, 玩家移到 behindPos=(bx+2*dx,by+2*dy)
+    //    前提：pullPos 和 behindPos 都是空地（非墙、非箱子），
+    //          且玩家当前位置能不经过箱子走到 pullPos
+    // ============================================================
+
+    function generateLevel(){
+        const c = CFG[G.difficulty];
+        G.w = c.w; G.h = c.h;
+
+        for(let attempt=0; attempt<200; attempt++){
+            // 1) 底图：外墙 + 随机内墙
+            const grid = Array.from({length:G.h},()=>Array(G.w).fill(FLOOR));
+            for(let y=0;y<G.h;y++) for(let x=0;x<G.w;x++){
+                if(x===0||x===G.w-1||y===0||y===G.h-1) grid[y][x]=WALL;
+            }
+            // 随机内墙（避免堵死：放完后检查连通性）
+            const candidates=[];
+            for(let y=2;y<G.h-2;y++) for(let x=2;x<G.w-2;x++) candidates.push({x,y});
+            shuffle(candidates);
+            let placed=0;
+            for(const p of candidates){
+                if(placed>=c.innerWalls) break;
+                grid[p.y][p.x]=WALL;
+                if(gridConnected(grid,G.w,G.h)){ placed++; }
+                else{ grid[p.y][p.x]=FLOOR; } // 撤回
+            }
+
+            // 2) 收集可用空地
+            const empties=[];
+            for(let y=1;y<G.h-1;y++) for(let x=1;x<G.w-1;x++){
+                if(grid[y][x]===FLOOR) empties.push({x,y});
+            }
+            if(empties.length < c.boxes*2+1) continue;
+
+            // 3) 随机选目标位置（排除死角：两面靠墙的角会让箱子永远卡住）
+            //    但因为我们用反向拉，死角检查其实不影响可解性，
+            //    不过好的关卡目标不应在角上（美观考虑）
+            shuffle(empties);
+            const targets = empties.slice(0, c.boxes).map(p=>({x:p.x,y:p.y}));
+
+            // 4) 初始完成态：箱子在目标上
+            const boxes = targets.map(t=>({x:t.x,y:t.y}));
+
+            // 5) 玩家放在第一个箱子的相邻空地
+            let px=-1, py=-1;
+            for(const {dx,dy} of DIRS){
+                const nx=boxes[0].x+dx, ny=boxes[0].y+dy;
+                if(isFloorInGrid(grid,nx,ny,G.w,G.h) && !boxes.some(b=>b.x===nx&&b.y===ny)){
+                    px=nx; py=ny; break;
+                }
+            }
+            if(px<0) continue;
+
+            // 6) 设置临时全局状态供 bfsReach 使用
+            G.grid = grid;
+
+            // 7) 反向拉操作
+            let pullsDone = 0;
+            const maxIter = c.pulls * 10;
+            for(let i=0; i<maxIter && pullsDone<c.pulls; i++){
+                const bi = Math.floor(Math.random()*boxes.length);
+                const d = DIRS[Math.floor(Math.random()*4)];
+                const bx=boxes[bi].x, by=boxes[bi].y;
+
+                // pullPos: 玩家要站的位置（箱子的 d 方向那一侧）
+                const pullX = bx+d.dx, pullY = by+d.dy;
+                // behindPos: 拉完后玩家退到的位置
+                const behindX = bx+2*d.dx, behindY = by+2*d.dy;
+
+                // 检查 pullPos 和 behindPos 合法
+                if(!isFloorInGrid(grid,pullX,pullY,G.w,G.h)) continue;
+                if(!isFloorInGrid(grid,behindX,behindY,G.w,G.h)) continue;
+                if(boxes.some((b,j)=>j!==bi && b.x===pullX && b.y===pullY)) continue;
+                if(boxes.some(b=>b.x===behindX && b.y===behindY)) continue;
+
+                // 玩家能否走到 pullPos（不穿越箱子）
+                const boxSet = new Set(boxes.map(b=>b.y*G.w+b.x));
+                // 从 boxSet 中移除当前箱子（它即将被拉走，不算阻挡）
+                // 实际上玩家走过去时箱子还在原位，所以不能移除
+                if(!bfsReach(px,py, pullX,pullY, boxSet)) continue;
+
+                // 执行拉动
+                boxes[bi].x = pullX;
+                boxes[bi].y = pullY;
+                px = behindX;
+                py = behindY;
+                pullsDone++;
+            }
+
+            // 要求至少完成一半的目标拉动次数，否则关卡太简单
+            if(pullsDone < Math.max(c.boxes * 3, Math.floor(c.pulls * 0.3))) continue;
+
+            // 8) 确保没有任何箱子初始就在目标上（否则太简单/无趣）
+            const anyOnTarget = boxes.some(b => targets.some(t=>t.x===b.x&&t.y===b.y));
+            if(anyOnTarget) continue;
+
+            // 9) 标记目标到 grid
+            for(const t of targets) grid[t.y][t.x] = TARGET;
+
+            // 保存
+            G.grid = grid;
+            G.px = px; G.py = py;
+            G.boxes = boxes;
+            G.targets = targets;
+            G.steps = 0;
+            G.history = [];
+            G.initPx = px; G.initPy = py;
+            G.initBoxes = boxes.map(b=>({...b}));
+            return; // 成功
+        }
+
+        // 保底：手工简单关卡
+        fallbackLevel();
+    }
+
+    function isFloorInGrid(grid,x,y,w,h){
+        return x>=0&&x<w&&y>=0&&y<h&&grid[y][x]!==WALL;
+    }
+
+    function shuffle(arr){
+        for(let i=arr.length-1;i>0;i--){
+            const j=Math.floor(Math.random()*(i+1));
+            [arr[i],arr[j]]=[arr[j],arr[i]];
+        }
+    }
+
+    /** 万一 200 次都生成失败，给一个保底手工关卡 */
+    function fallbackLevel(){
+        // 经典 5×5 简单关卡
+        const map = [
+            [1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,1],
+            [1,0,0,0,0,0,1],
+            [1,0,0,0,0,0,1],
+            [1,0,0,2,0,0,1],
+            [1,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1]
+        ];
+        G.w=7; G.h=7;
+        G.grid=map;
+        G.targets=[{x:3,y:4}];
+        G.boxes=[{x:3,y:2}];
+        G.px=3; G.py=1;
+        G.steps=0; G.history=[];
+        G.initPx=3; G.initPy=1;
+        G.initBoxes=[{x:3,y:2}];
+    }
+
+    // ============================================================
+    //  游戏逻辑
+    // ============================================================
+
+    function move(dx,dy){
+        const nx = G.px+dx, ny = G.py+dy;
+        if(!isFloor(nx,ny)) return;
+
+        const bi = G.boxes.findIndex(b=>b.x===nx&&b.y===ny);
+        if(bi>=0){
+            // 推箱子
+            const bx=nx+dx, by=ny+dy;
+            if(!isFloor(bx,by)) return;
+            if(G.boxes.some(b=>b.x===bx&&b.y===by)) return;
+
+            // 存历史
+            G.history.push({px:G.px,py:G.py,boxes:G.boxes.map(b=>({...b})),steps:G.steps});
+            G.boxes[bi].x=bx; G.boxes[bi].y=by;
+        } else {
+            G.history.push({px:G.px,py:G.py,boxes:G.boxes.map(b=>({...b})),steps:G.steps});
+        }
+
+        G.px=nx; G.py=ny; G.steps++;
+        if(navigator.vibrate) navigator.vibrate(10);
+        render();
+        checkWin();
+    }
+
+    function undo(){
+        if(!G.history.length) return;
+        const s = G.history.pop();
+        G.px=s.px; G.py=s.py; G.boxes=s.boxes; G.steps=s.steps;
+        render();
+    }
+
+    function resetLevel(){
+        G.px=G.initPx; G.py=G.initPy;
+        G.boxes=G.initBoxes.map(b=>({...b}));
+        G.steps=0; G.history=[];
+        render();
+    }
+
+    function checkWin(){
+        if(G.boxes.every(b => G.targets.some(t=>t.x===b.x&&t.y===b.y))){
+            document.getElementById('finalSteps').textContent=G.steps;
+            document.getElementById('winModal').style.display='flex';
+            if(navigator.vibrate) navigator.vibrate([100,50,100,50,200]);
+        }
+    }
+
+    // ============================================================
+    //  渲染
+    // ============================================================
+
+    function cellSize(){
+        const cw = document.querySelector('.container').clientWidth - 60;
+        return Math.max(24, Math.min(48, Math.floor(cw / G.w)));
+    }
+
+    function render(){
+        const board = document.getElementById('gameBoard');
+        board.innerHTML='';
+        const sz = cellSize();
+        const fs = Math.floor(sz*0.65);
+
+        for(let y=0;y<G.h;y++){
+            const row=document.createElement('div');
+            row.className='row';
+            for(let x=0;x<G.w;x++){
+                const cell=document.createElement('div');
+                cell.className='cell';
+                cell.style.width=sz+'px'; cell.style.height=sz+'px'; cell.style.fontSize=fs+'px';
+
+                const isTgt = G.targets.some(t=>t.x===x&&t.y===y);
+                const isBox = G.boxes.some(b=>b.x===x&&b.y===y);
+                const isPlayer = G.px===x&&G.py===y;
+
+                if(G.grid[y][x]===WALL){
+                    cell.classList.add('wall'); cell.textContent='🧱';
+                } else if(isPlayer){
+                    cell.classList.add(isTgt?'target':'floor'); cell.textContent='🐱';
+                } else if(isBox && isTgt){
+                    cell.classList.add('target'); cell.textContent='⭐';
+                } else if(isBox){
+                    cell.classList.add('floor'); cell.textContent='📦';
+                } else if(isTgt){
+                    cell.classList.add('target'); cell.textContent='✨';
+                } else {
+                    cell.classList.add('floor');
+                }
+                row.appendChild(cell);
+            }
+            board.appendChild(row);
+        }
+        document.getElementById('steps').textContent=G.steps;
+    }
+
+    // ============================================================
+    //  UI 切换
+    // ============================================================
+
+    function startGame(diff){
+        G.difficulty=diff; G.levelNum=1;
+        generateLevel();
+        document.getElementById('menu').style.display='none';
+        document.getElementById('gameArea').style.display='block';
+        document.getElementById('difficultyText').textContent=
+            {easy:'🌱 简单',medium:'🌟 中等',hard:'🔥 困难'}[diff];
+        document.getElementById('levelNumber').textContent=G.levelNum;
+        render();
+    }
+
+    function newLevel(){ generateLevel(); render(); }
+
+    function nextLevel(){
+        document.getElementById('winModal').style.display='none';
+        G.levelNum++;
+        document.getElementById('levelNumber').textContent=G.levelNum;
+        generateLevel(); render();
+    }
+
+    function backToMenu(){
+        document.getElementById('winModal').style.display='none';
+        document.getElementById('gameArea').style.display='none';
+        document.getElementById('menu').style.display='flex';
+    }
+
+    // ============================================================
+    //  输入控制
+    // ============================================================
+
+    // 键盘
+    document.addEventListener('keydown', e=>{
+        if(document.getElementById('gameArea').style.display==='none') return;
+        const map={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],
+                    w:[0,-1],W:[0,-1],s:[0,1],S:[0,1],a:[-1,0],A:[-1,0],d:[1,0],D:[1,0]};
+        if(map[e.key]){ move(...map[e.key]); e.preventDefault(); }
+        if(e.key==='z'||e.key==='Z'){ undo(); e.preventDefault(); }
+        if(e.key==='r'||e.key==='R'){ resetLevel(); e.preventDefault(); }
+    });
+
+    // 触屏滑动
+    let tx0=0,ty0=0;
+    const ga=document.getElementById('gameArea');
+    ga.addEventListener('touchstart',e=>{ tx0=e.touches[0].clientX; ty0=e.touches[0].clientY; },{passive:true});
+    ga.addEventListener('touchend',e=>{
+        if(!e.changedTouches[0]) return;
+        const dx=e.changedTouches[0].clientX-tx0;
+        const dy=e.changedTouches[0].clientY-ty0;
+        if(Math.abs(dx)<25&&Math.abs(dy)<25) return;
+        if(Math.abs(dx)>Math.abs(dy)) move(dx>0?1:-1,0);
+        else move(0,dy>0?1:-1);
+    },{passive:true});
+
+    document.body.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+    window.addEventListener('resize',()=>{
+        if(document.getElementById('gameArea').style.display!=='none') render();
+    });
+
+    </script>
+</body>
+</html>
