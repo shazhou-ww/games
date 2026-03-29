@@ -883,8 +883,8 @@ function update(dt) {
   // Recycle ground tiles
   recycleTiles(0);
 
-  // Spawn obstacles (minimum 25m spacing, up to 40m)
-  if (worldZ - lastObstacleZ > 25 + Math.random() * 15) {
+  // Spawn obstacles (minimum 15m spacing, up to 25m)
+  if (worldZ - lastObstacleZ > 15 + Math.random() * 10) {
     // Don't spawn if there's an active math gate ahead
     if (!mathGate) {
       spawnObstacle(worldZ);
