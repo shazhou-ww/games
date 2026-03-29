@@ -178,7 +178,6 @@ const JUMP_VY        = 9;
 const GRAVITY        = 24;
 const OBSTACLE_SPAWN_DIST = 90; // spawn this far ahead
 const OBSTACLE_REMOVE_Z   = 4;  // remove once behind camera
-const MATH_SPAWN_EVERY    = 120; // every ~120m a math gate
 
 // Obstacle types
 const OBS = { GROUND: 'ground', OVERHEAD: 'overhead', LEFT: 'left', RIGHT: 'right' };
@@ -200,7 +199,6 @@ let speed    = SPEED_INIT;
 let obstacles = [];
 let mathGate  = null;
 let activeMath = null; // { answer, options, gate3d }
-let nextMathAt    = MATH_SPAWN_EVERY;
 let cameraShake   = { x: 0, y: 0, ttl: 0 };
 let courseItems = []; // pre-generated course layout
 let score         = 0;
