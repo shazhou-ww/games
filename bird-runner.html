@@ -200,9 +200,9 @@ let speed    = SPEED_INIT;
 let obstacles = [];
 let mathGate  = null;
 let activeMath = null; // { answer, options, gate3d }
-let lastObstacleZ = 0; // unused, kept for compat
 let nextMathAt    = MATH_SPAWN_EVERY;
 let cameraShake   = { x: 0, y: 0, ttl: 0 };
+let courseItems = []; // pre-generated course layout
 let score         = 0;
 let clock;
 let treePool = [];
@@ -718,13 +718,40 @@ function shuffleArray(arr) {
   return arr;
 }
 
-let nextObstacleAt = 40; // distance at which next obstacle spawns
+// ─── Course Pre-generation ────────────────────────────────────────────────────
+function generateCourse() {
+  courseItems = [];
+  let pos = 30; // starting distance in metres
+  while (pos < TRACK_LENGTH) {
+    if (Math.random() < 0.15) {
+      courseItems.push({ type: 'math', distance: pos, spawned: false });
+    } else {
+      const obsType = ['ground', 'left', 'right'][Math.floor(Math.random() * 3)];
+      courseItems.push({ type: 'obstacle', obsType, distance: pos, spawned: false });
+    }
+    pos += 25 + Math.random() * 15; // 25–40m spacing
+  }
+}
 
-function spawnObstacle() {
-  const types = [OBS.GROUND, OBS.LEFT, OBS.RIGHT];
-  const type = types[Math.floor(Math.random() * types.length)];
-  // Always place at fixed distance ahead of camera (negative z = ahead)
-  buildObstacle(type, -OBSTACLE_SPAWN_DIST);
+let courseIndex = 0; // next item to check for spawning
+
+function spawnCourseItems() {
+  while (courseIndex < courseItems.length) {
+    const item = courseItems[courseIndex];
+    if (item.spawned) { courseIndex++; continue; }
+    // Spawn when the item is within OBSTACLE_SPAWN_DIST metres ahead
+    if (item.distance <= distance + OBSTACLE_SPAWN_DIST) {
+      item.spawned = true;
+      if (item.type === 'math') {
+        buildMathGate(-OBSTACLE_SPAWN_DIST);
+      } else {
+        buildObstacle(item.obsType, -OBSTACLE_SPAWN_DIST);
+      }
+      courseIndex++;
+    } else {
+      break; // items are in order; no need to look further
+    }
+  }
 }
 
 function cleanupObstacles() {
@@ -838,7 +865,7 @@ let worldZ = 0; // how far we've moved in world Z (bird stays at 0, world moves)
 function startGame() {
   // Reset state
   distance = 0; elapsed = 0; speed = SPEED_INIT; score = 0;
-  worldZ = 0; nextObstacleAt = 30; nextMathAt = MATH_SPAWN_EVERY;
+  worldZ = 0;
   bird.x = 0; bird.y = BIRD_Y_GROUND; bird.velY = 0;
   bird.ducking = false; bird.hitCooldown = 0;
   bird.mesh.position.set(0, BIRD_Y_GROUND, 0);
@@ -850,6 +877,10 @@ function startGame() {
   if (mathGate) { scene.remove(mathGate); mathGate = null; }
   activeMath = null;
   hideMathHUD();
+
+  // Pre-generate the full course
+  generateCourse();
+  courseIndex = 0;
 
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('end-screen').style.display   = 'none';
@@ -894,35 +925,18 @@ function update(dt) {
   // Recycle ground tiles
   recycleTiles(0);
 
-  // Spawn obstacles based on distance traveled (at most 1 per frame)
-  if (distance >= nextObstacleAt) {
-    // Don't spawn if there's an active math gate ahead
-    if (!mathGate) {
-      spawnObstacle();
-    }
-    // If we've fallen behind (e.g. during math gate), skip ahead
-    // rather than spawning a bunch at once
-    if (distance - nextObstacleAt > 30) {
-      nextObstacleAt = distance + 25 + Math.random() * 15;
-    } else {
-      nextObstacleAt += 25 + Math.random() * 15;
-    }
-  }
-
-  // Spawn math gate
-  if (distance >= nextMathAt && !mathGate) {
-    const z = -OBSTACLE_SPAWN_DIST * 0.8;
-    buildMathGate(z);
-    nextMathAt += MATH_SPAWN_EVERY;
-  }
+  // Spawn pre-generated course items as they come into range
+  spawnCourseItems();
 
   // Cleanup
   cleanupObstacles();
 
-  // Cleanup math gate if it passed the bird
-  if (mathGate && mathGate.position.z > 5) {
-    // Player didn't answer in time — treat as a miss
+  // Cleanup math gate once it has fully passed the bird (z > 2).
+  // This also handles the case where hitCooldown froze the gate near z=1.5
+  // and active was already set false by the collision handler.
+  if (mathGate && (mathGate.position.z > 2 || !mathGate.userData.active && mathGate.position.z > -1)) {
     if (mathGate.userData.active) {
+      // Gate passed unanswered
       triggerHit();
     }
     scene.remove(mathGate);
