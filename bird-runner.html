@@ -139,7 +139,6 @@ canvas { display: block; }
     <p>在跑道上躲避障碍，回答数学题，跑完 1000 米！</p>
     <p style="margin-top:8px;">
       <b style="color:#f87171">↑/W</b> 跳起 &nbsp;
-      <b style="color:#fbbf24">↓/S</b> 下蹲 &nbsp;
       <b style="color:#60a5fa">←/A</b> 左移 &nbsp;
       <b style="color:#60a5fa">→/D</b> 右移
     </p>
@@ -301,20 +300,7 @@ function buildGround() {
 }
 
 function addGridLines(tileMesh, idx) {
-  // We'll paint grid via LineSegments parented to tile
-  const pts = [];
-  const hw  = TRACK_WIDTH / 2;
-  const hl  = GROUND_TILE_LEN / 2;
-  const step = 4;
-  for (let z = -hl; z <= hl; z += step) {
-    pts.push(-hw, 0.01, z,  hw, 0.01, z);
-  }
-  const geoBuf = new THREE.BufferGeometry();
-  const arr = new Float32Array(pts);
-  geoBuf.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-  const lineMat = new THREE.LineBasicMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.35 });
-  const lines = new THREE.LineSegments(geoBuf, lineMat);
-  tileMesh.add(lines);
+  // No grid lines — keep road clean
 }
 
 let laneStripes = [];
@@ -733,7 +719,8 @@ function shuffleArray(arr) {
 }
 
 function spawnObstacle(worldZ) {
-  const type = [OBS.GROUND, OBS.OVERHEAD, OBS.LEFT, OBS.RIGHT][Math.floor(Math.random() * 4)];
+  const types = [OBS.GROUND, OBS.LEFT, OBS.RIGHT];
+  const type = types[Math.floor(Math.random() * types.length)];
   buildObstacle(type, worldZ - OBSTACLE_SPAWN_DIST);
 }
 
@@ -896,8 +883,8 @@ function update(dt) {
   // Recycle ground tiles
   recycleTiles(0);
 
-  // Spawn obstacles (minimum 45m spacing, up to 65m)
-  if (worldZ - lastObstacleZ > 45 + Math.random() * 20) {
+  // Spawn obstacles (minimum 25m spacing, up to 40m)
+  if (worldZ - lastObstacleZ > 25 + Math.random() * 15) {
     // Don't spawn if there's an active math gate ahead
     if (!mathGate) {
       spawnObstacle(worldZ);
@@ -1048,9 +1035,6 @@ document.addEventListener('keydown', e => {
     case 'ArrowUp': case 'w': case 'W':
       if (bird.y <= BIRD_Y_GROUND + 0.05 && bird.velY === 0) bird.velY = JUMP_VY;
       break;
-    case 'ArrowDown': case 's': case 'S':
-      bird.ducking = true;
-      break;
     case 'ArrowLeft': case 'a': case 'A':
       bird.targetX = Math.max(-TRACK_WIDTH / 2 + 1, bird.targetX - 3.2);
       break;
@@ -1064,7 +1048,6 @@ document.addEventListener('keydown', e => {
   }
 });
 document.addEventListener('keyup', e => {
-  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') bird.ducking = false;
 });
 
 // Touch
@@ -1079,11 +1062,8 @@ document.addEventListener('touchend', e => {
   const adx = Math.abs(dx), ady = Math.abs(dy);
   if (adx < 10 && ady < 10) return;
   if (ady > adx) {
-    if (dy < -20) { // swipe up
+    if (dy < -20) { // swipe up = jump
       if (bird.y <= BIRD_Y_GROUND + 0.05 && bird.velY === 0) bird.velY = JUMP_VY;
-    } else { // swipe down
-      bird.ducking = true;
-      setTimeout(() => { bird.ducking = false; }, 600);
     }
   } else {
     if (dx < -20) bird.targetX = Math.max(-TRACK_WIDTH/2+1, bird.targetX - 3.2);
