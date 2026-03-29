@@ -720,18 +720,26 @@ function shuffleArray(arr) {
 
 let nextObstacleAt = 40; // distance at which next obstacle spawns
 
-function spawnObstacle(worldZ) {
+function spawnObstacle() {
   const types = [OBS.GROUND, OBS.LEFT, OBS.RIGHT];
   const type = types[Math.floor(Math.random() * types.length)];
-  // Always place at fixed distance ahead of camera
+  // Always place at fixed distance ahead of camera (negative z = ahead)
   buildObstacle(type, -OBSTACLE_SPAWN_DIST);
 }
 
 function cleanupObstacles() {
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const o = obstacles[i];
-    if (o.position.z > OBSTACLE_REMOVE_Z) {
+    if (o.position.z > 10) { // well past the bird
       scene.remove(o);
+      // Dispose geometries and materials
+      o.traverse(child => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+      });
       obstacles.splice(i, 1);
     }
   }
@@ -886,14 +894,19 @@ function update(dt) {
   // Recycle ground tiles
   recycleTiles(0);
 
-  // Spawn obstacles based on distance traveled
+  // Spawn obstacles based on distance traveled (at most 1 per frame)
   if (distance >= nextObstacleAt) {
     // Don't spawn if there's an active math gate ahead
     if (!mathGate) {
-      spawnObstacle(worldZ);
+      spawnObstacle();
     }
-    // Schedule next obstacle 15-25m later regardless
-    nextObstacleAt = distance + 15 + Math.random() * 10;
+    // If we've fallen behind (e.g. during math gate), skip ahead
+    // rather than spawning a bunch at once
+    if (distance - nextObstacleAt > 30) {
+      nextObstacleAt = distance + 15 + Math.random() * 10;
+    } else {
+      nextObstacleAt += 15 + Math.random() * 10;
+    }
   }
 
   // Spawn math gate
