@@ -899,7 +899,6 @@ function update(dt) {
     // Don't spawn if there's an active math gate ahead
     if (!mathGate) {
       spawnObstacle();
-      console.log(`[SPAWN] dist=${distance.toFixed(1)} nextAt=${nextObstacleAt.toFixed(1)} obs_count=${obstacles.length} obs_positions=[${obstacles.map(o=>o.position.z.toFixed(1)).join(',')}]`);
     }
     // If we've fallen behind (e.g. during math gate), skip ahead
     // rather than spawning a bunch at once
@@ -908,11 +907,6 @@ function update(dt) {
     } else {
       nextObstacleAt += 15 + Math.random() * 10;
     }
-  }
-
-  // Log every 2 seconds
-  if (Math.floor(elapsed * 2) !== Math.floor((elapsed - dt) * 2)) {
-    console.log(`[TICK] dist=${distance.toFixed(1)} speed=${speed.toFixed(1)} nextObsAt=${nextObstacleAt.toFixed(1)} obs_count=${obstacles.length} obs_z=[${obstacles.map(o=>o.position.z.toFixed(1)).join(',')}] mathGate=${!!mathGate}`);
   }
 
   // Spawn math gate
@@ -924,6 +918,18 @@ function update(dt) {
 
   // Cleanup
   cleanupObstacles();
+
+  // Cleanup math gate if it passed the bird
+  if (mathGate && mathGate.position.z > 5) {
+    // Player didn't answer in time — treat as a miss
+    if (mathGate.userData.active) {
+      triggerHit();
+    }
+    scene.remove(mathGate);
+    mathGate = null;
+    activeMath = null;
+    hideMathHUD();
+  }
 
   // Bird physics
   if (bird.velY !== 0 || bird.y > BIRD_Y_GROUND + 0.01) {
