@@ -827,7 +827,7 @@ let worldZ = 0; // how far we've moved in world Z (bird stays at 0, world moves)
 function startGame() {
   // Reset state
   distance = 0; elapsed = 0; speed = SPEED_INIT; score = 0;
-  worldZ = 0; lastObstacleZ = 0; nextMathAt = MATH_SPAWN_EVERY;
+  worldZ = 0; lastObstacleZ = 30; nextMathAt = MATH_SPAWN_EVERY;
   bird.x = 0; bird.y = BIRD_Y_GROUND; bird.velY = 0;
   bird.ducking = false; bird.hitCooldown = 0;
   bird.mesh.position.set(0, BIRD_Y_GROUND, 0);
@@ -884,10 +884,14 @@ function update(dt) {
   recycleTiles(0);
 
   // Spawn obstacles (minimum 15m spacing, up to 25m)
-  if (worldZ - lastObstacleZ > 15 + Math.random() * 10) {
+  const minSpacing = 15 + Math.random() * 10;
+  if (worldZ - lastObstacleZ > minSpacing) {
     // Don't spawn if there's an active math gate ahead
     if (!mathGate) {
       spawnObstacle(worldZ);
+      lastObstacleZ = worldZ;
+    } else {
+      // Still advance the counter so we don't bunch after gate
       lastObstacleZ = worldZ;
     }
   }
