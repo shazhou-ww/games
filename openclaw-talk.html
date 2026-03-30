@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>养龙虾心得 — 我的 OpenClaw 实践分享</title>
+    <!-- Fontshare: Clash Display + Satoshi (Neon Cyber spec) -->
+    <link rel="preconnect" href="https://api.fontshare.com">
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@700,600,500&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+    <style>
+        /* ==========================================
+           CSS CUSTOM PROPERTIES — Neon Cyber Theme
+           ========================================== */
+        :root {
+            --bg-primary: #0a0f1c;
+            --bg-secondary: #0d1528;
+            --bg-card: rgba(0, 255, 204, 0.05);
+            --bg-card-hover: rgba(0, 255, 204, 0.08);
+            --accent-cyan: #00ffcc;
+            --accent-magenta: #ff00aa;
+            --accent-blue: #0088ff;
+            --accent-yellow: #ffcc00;
+            --text-primary: #e8f4f8;
+            --text-secondary: #7ab8cc;
+            --text-muted: #4a7a90;
+            --border-glow: rgba(0, 255, 204, 0.3);
+            --border-dim: rgba(0, 255, 204, 0.1);
+
+            /* Typography */
+            --font-display: 'Clash Display', 'Segoe UI', sans-serif;
+            --font-body: 'Satoshi', 'Segoe UI', sans-serif;
+            --title-size: clamp(2rem, 6vw, 5rem);
+            --h2-size: clamp(1.4rem, 3.5vw, 2.8rem);
+            --h3-size: clamp(1.1rem, 2.5vw, 1.8rem);
+            --body-size: clamp(0.8rem, 1.5vw, 1.1rem);
+            --small-size: clamp(0.65rem, 1.1vw, 0.9rem);
+            --tag-size: clamp(0.6rem, 1vw, 0.8rem);
+
+            /* Spacing */
+            --slide-padding: clamp(1.5rem, 4vw, 5rem);
+            --content-gap: clamp(0.6rem, 1.8vw, 1.8rem);
+        }
+
+        /* ==========================================
+           VIEWPORT FITTING — MANDATORY BASE CSS
+           ========================================== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+            background: var(--bg-primary);
+        }
+
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-body);
+            color: var(--text-primary);
+        }
+
+        /* Each slide = exact viewport */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: var(--bg-primary);
+        }
+
+        /* Content wrapper */
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden;
+            padding: var(--slide-padding);
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Cards and containers */
+        .card, .container {
+            max-width: min(90vw, 1000px);
+            max-height: min(80vh, 700px);
+        }
+
+        /* Images */
+        img, .image-container {
+            max-width: 100%;
+            max-height: min(50vh, 400px);
+            object-fit: contain;
+        }
+
+        /* Grids */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+            gap: clamp(0.5rem, 1.5vw, 1rem);
+        }
+
+        /* ==========================================
+           NEON CYBER SIGNATURE ELEMENTS
+           ========================================== */
+
+        /* Grid pattern background */
+        .grid-bg {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 255, 204, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 204, 0.04) 1px, transparent 1px);
+            background-size: clamp(25px, 4vw, 50px) clamp(25px, 4vw, 50px);
+            z-index: 0;
+        }
+
+        /* Neon glow accents */
+        .neon-line {
+            position: absolute;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan), 0 0 20px rgba(0,255,204,0.4);
+        }
+        .neon-line-h { height: 2px; width: 100%; }
+        .neon-line-v { width: 2px; height: 100%; }
+
+        /* Glow orbs */
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.15;
+            pointer-events: none;
+        }
+        .glow-cyan { background: var(--accent-cyan); }
+        .glow-magenta { background: var(--accent-magenta); }
+        .glow-blue { background: var(--accent-blue); }
+
+        /* Corner accent */
+        .corner-accent {
+            position: absolute;
+            width: clamp(40px, 6vw, 80px);
+            height: clamp(40px, 6vw, 80px);
+            border-color: var(--accent-cyan);
+            border-style: solid;
+            opacity: 0.6;
+            box-shadow: 0 0 10px rgba(0,255,204,0.3);
+        }
+        .corner-tl { top: clamp(20px, 3vw, 40px); left: clamp(20px, 3vw, 40px); border-width: 2px 0 0 2px; }
+        .corner-br { bottom: clamp(20px, 3vw, 40px); right: clamp(20px, 3vw, 40px); border-width: 0 2px 2px 0; }
+
+        /* Slide number */
+        .slide-num {
+            position: absolute;
+            top: clamp(12px, 2vw, 24px);
+            right: clamp(16px, 3vw, 40px);
+            font-family: var(--font-display);
+            font-size: clamp(0.7rem, 1.2vw, 0.95rem);
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            z-index: 3;
+        }
+
+        /* Section label */
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5em;
+            font-family: var(--font-display);
+            font-size: var(--tag-size);
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent-cyan);
+            margin-bottom: clamp(0.6rem, 1.5vw, 1.5rem);
+        }
+        .section-label::before {
+            content: '';
+            display: inline-block;
+            width: clamp(20px, 3vw, 40px);
+            height: 2px;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 6px var(--accent-cyan);
+        }
+
+        /* ==========================================
+           TYPOGRAPHY
+           ========================================== */
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+        }
+
+        h1 .neon-text {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 20px rgba(0,255,204,0.5));
+        }
+
+        h1 .magenta-text {
+            background: linear-gradient(135deg, var(--accent-magenta), #cc00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+        }
+
+        h3 {
+            font-family: var(--font-display);
+            font-size: var(--h3-size);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            font-family: var(--font-body);
+            font-size: clamp(1rem, 2.5vw, 1.6rem);
+            color: var(--text-secondary);
+            margin-top: clamp(0.5rem, 1.5vw, 1.2rem);
+            font-weight: 400;
+        }
+
+        /* ==========================================
+           BULLET LISTS
+           ========================================== */
+        .bullet-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.5rem, 1.2vw, 1rem);
+            margin-top: clamp(0.8rem, 2vw, 1.5rem);
+        }
+
+        .bullet-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.8em;
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .bullet-list li::before {
+            content: '▸';
+            color: var(--accent-cyan);
+            flex-shrink: 0;
+            margin-top: 0.1em;
+            text-shadow: 0 0 8px var(--accent-cyan);
+        }
+
+        .bullet-list li strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .bullet-list.sub-list {
+            margin-top: 0.4rem;
+            padding-left: 1.2em;
+        }
+        .bullet-list.sub-list li::before {
+            content: '·';
+            color: var(--accent-magenta);
+        }
+        .bullet-list.sub-list li {
+            font-size: calc(var(--body-size) * 0.9);
+            color: var(--text-muted);
+        }
+
+        /* ==========================================
+           NEON CARDS
+           ========================================== */
+        .neon-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            padding: clamp(0.8rem, 2vw, 1.5rem);
+            position: relative;
+            transition: border-color 0.3s, background 0.3s;
+        }
+
+        .neon-card::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent-cyan), transparent 60%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: -1;
+        }
+
+        .neon-card:hover { border-color: var(--border-glow); background: var(--bg-card-hover); }
+        .neon-card:hover::before { opacity: 0.15; }
+
+        .neon-card h3 {
+            font-size: clamp(0.85rem, 1.8vw, 1.2rem);
+            color: var(--accent-cyan);
+            margin-bottom: 0.4em;
+        }
+
+        .neon-card p, .neon-card li {
+            font-size: clamp(0.7rem, 1.3vw, 0.95rem);
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Card icon */
+        .card-icon {
+            font-size: clamp(1.2rem, 2.5vw, 2rem);
+            margin-bottom: 0.4em;
+        }
+
+        /* ==========================================
+           HIGHLIGHT / CALLOUT BOX
+           ========================================== */
+        .callout {
+            border-left: 3px solid var(--accent-cyan);
+            box-shadow: inset 0 0 20px rgba(0,255,204,0.05), 0 0 20px rgba(0,255,204,0.1);
+            background: rgba(0,255,204,0.04);
+            border-radius: 0 8px 8px 0;
+            padding: clamp(0.6rem, 1.5vw, 1.2rem) clamp(0.8rem, 2vw, 1.5rem);
+            font-size: var(--body-size);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .callout.magenta {
+            border-left-color: var(--accent-magenta);
+            box-shadow: inset 0 0 20px rgba(255,0,170,0.05), 0 0 20px rgba(255,0,170,0.1);
+            background: rgba(255,0,170,0.04);
+        }
+
+        /* ==========================================
+           COMPARISON TABLE
+           ========================================== */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(0.8rem, 2vw, 1.5rem);
+            margin-top: clamp(0.8rem, 2vw, 1.5rem);
+        }
+
+        .compare-col h3 {
+            font-size: clamp(0.85rem, 1.8vw, 1.2rem);
+            margin-bottom: clamp(0.5rem, 1.2vw, 1rem);
+            padding-bottom: 0.4em;
+            border-bottom: 1px solid;
+        }
+
+        .compare-col.dim h3 { color: var(--text-muted); border-color: rgba(255,255,255,0.1); }
+        .compare-col.bright h3 { color: var(--accent-cyan); border-color: var(--border-dim); text-shadow: 0 0 10px rgba(0,255,204,0.5); }
+
+        .compare-col li {
+            font-size: clamp(0.7rem, 1.3vw, 0.9rem);
+            color: var(--text-muted);
+            margin-bottom: 0.4em;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5em;
+        }
+        .compare-col.dim li::before { content: '✗'; color: #ff4444; }
+        .compare-col.bright li::before { content: '✓'; color: var(--accent-cyan); text-shadow: 0 0 6px var(--accent-cyan); }
+        .compare-col ul { list-style: none; }
+
+        /* ==========================================
+           STAT / METRIC BARS
+           ========================================== */
+        .metric-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(0.5rem, 1.5vw, 1.2rem);
+            margin-top: clamp(0.8rem, 2vw, 1.5rem);
+        }
+
+        .metric-item {
+            background: rgba(0,255,204,0.04);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            padding: clamp(0.6rem, 1.5vw, 1rem);
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            margin-bottom: 0.3em;
+        }
+
+        .metric-before {
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+
+        .metric-after {
+            font-family: var(--font-display);
+            font-size: clamp(1.2rem, 2.5vw, 2rem);
+            color: var(--accent-cyan);
+            font-weight: 700;
+            text-shadow: 0 0 15px rgba(0,255,204,0.6);
+            display: block;
+        }
+
+        /* ==========================================
+           TEAM CARDS
+           ========================================== */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(0.6rem, 1.5vw, 1.2rem);
+            margin-top: clamp(0.8rem, 2vw, 1.5rem);
+        }
+
+        .team-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-dim);
+            border-radius: 10px;
+            padding: clamp(0.7rem, 1.5vw, 1.2rem);
+        }
+
+        .team-card h3 {
+            font-size: clamp(0.8rem, 1.6vw, 1.1rem);
+            color: var(--accent-cyan);
+            margin-bottom: 0.5em;
+        }
+
+        .team-members {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25em;
+        }
+
+        .team-member {
+            font-size: clamp(0.65rem, 1.1vw, 0.85rem);
+            color: var(--text-muted);
+        }
+
+        .team-footer {
+            margin-top: 0.6em;
+            font-size: clamp(0.6rem, 1vw, 0.75rem);
+            color: var(--accent-magenta);
+            font-style: italic;
+        }
+
+        /* ==========================================
+           TAKEAWAY LIST
+           ========================================== */
+        .takeaway-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.5rem, 1.5vw, 1rem);
+            margin-top: clamp(0.8rem, 2vw, 1.5rem);
+        }
+
+        .takeaway-list li {
+            display: flex;
+            align-items: center;
+            gap: 1em;
+            background: rgba(0,255,204,0.04);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            padding: clamp(0.5rem, 1.2vw, 0.9rem) clamp(0.8rem, 2vw, 1.4rem);
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+        }
+
+        .takeaway-num {
+            font-family: var(--font-display);
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            font-weight: 700;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 15px rgba(0,255,204,0.5);
+            flex-shrink: 0;
+            width: 1.5em;
+            text-align: center;
+        }
+
+        /* ==========================================
+           LINK ITEMS
+           ========================================== */
+        .link-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.5rem, 1.2vw, 0.9rem);
+            margin-top: clamp(0.8rem, 2vw, 1.5rem);
+        }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            gap: 1em;
+            background: rgba(0,255,204,0.03);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            padding: clamp(0.6rem, 1.5vw, 1rem) clamp(0.8rem, 2vw, 1.4rem);
+        }
+
+        .link-icon {
+            font-size: clamp(1rem, 2vw, 1.4rem);
+            flex-shrink: 0;
+        }
+
+        .link-info {
+            flex: 1;
+        }
+
+        .link-title {
+            font-family: var(--font-display);
+            font-size: clamp(0.75rem, 1.4vw, 1rem);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .link-url {
+            font-size: clamp(0.6rem, 1vw, 0.8rem);
+            color: var(--accent-cyan);
+            text-decoration: none;
+            opacity: 0.7;
+        }
+        .link-url:hover { opacity: 1; }
+
+        /* ==========================================
+           SECTION COVER SLIDES
+           ========================================== */
+        .section-cover {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .section-cover h1 {
+            font-size: clamp(2.5rem, 8vw, 7rem);
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 30px rgba(0,255,204,0.4));
+        }
+
+        .section-cover .subtitle {
+            font-size: clamp(1rem, 2.5vw, 1.8rem);
+            color: var(--text-muted);
+            margin-top: 1rem;
+        }
+
+        /* ==========================================
+           PROGRESS + NAVIGATION
+           ========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+            box-shadow: 0 0 10px var(--accent-cyan), 0 0 20px rgba(0,255,204,0.5);
+            z-index: 100;
+            transition: width 0.3s ease;
+        }
+
+        .nav-dots {
+            position: fixed;
+            right: clamp(10px, 2vw, 20px);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .nav-dot:hover,
+        .nav-dot.active {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan), 0 0 16px rgba(0,255,204,0.4);
+            transform: scale(1.4);
+        }
+
+        /* Keyboard hint */
+        .keyboard-hint {
+            position: fixed;
+            bottom: clamp(10px, 2vh, 20px);
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(0.5rem, 0.9vw, 0.7rem);
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            z-index: 100;
+            opacity: 0.5;
+            display: flex;
+            gap: 0.8em;
+            align-items: center;
+        }
+
+        .key-badge {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: inherit;
+        }
+
+        /* ==========================================
+           REVEAL ANIMATIONS
+           ========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-30px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .reveal-left.visible { opacity: 1; transform: translateX(0); }
+        .reveal-right {
+            opacity: 0;
+            transform: translateX(30px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .reveal-right.visible { opacity: 1; transform: translateX(0); }
+
+        /* ==========================================
+           SCAN LINE EFFECT
+           ========================================== */
+        .slide::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.03) 2px,
+                rgba(0,0,0,0.03) 4px
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ==========================================
+           RESPONSIVE BREAKPOINTS
+           ========================================== */
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(0.8rem, 3vw, 2rem);
+                --content-gap: clamp(0.4rem, 1.2vw, 0.8rem);
+                --title-size: clamp(1.5rem, 4.5vw, 2.8rem);
+                --h2-size: clamp(1.1rem, 3vw, 1.8rem);
+                --body-size: clamp(0.7rem, 1.3vw, 0.95rem);
+            }
+        }
+
+        @media (max-height: 600px) {
+            :root {
+                --title-size: clamp(1.2rem, 4vw, 2rem);
+                --body-size: clamp(0.65rem, 1.1vw, 0.85rem);
+                --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+            }
+            .nav-dots, .keyboard-hint, .corner-accent, .glow-orb { display: none; }
+        }
+
+        @media (max-height: 500px) {
+            :root {
+                --title-size: clamp(1rem, 3.5vw, 1.5rem);
+                --slide-padding: clamp(0.4rem, 2vw, 1rem);
+                --body-size: clamp(0.6rem, 1vw, 0.8rem);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .grid, .compare-grid, .team-grid, .metric-row { grid-template-columns: 1fr; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+        }
+
+        /* ==========================================
+           SLIDE-SPECIFIC LAYOUTS
+           ========================================== */
+
+        /* Cover slide */
+        .cover-slide .slide-content {
+            align-items: flex-start;
+            justify-content: flex-end;
+            padding-bottom: clamp(2rem, 6vh, 6rem);
+        }
+
+        .cover-title {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 7vw, 6rem);
+            font-weight: 700;
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+
+        .cover-emoji {
+            display: block;
+            font-size: clamp(2rem, 5vw, 4rem);
+            margin-bottom: 0.3em;
+        }
+
+        .cover-tagline {
+            margin-top: clamp(0.8rem, 2vw, 1.5rem);
+            font-size: clamp(1rem, 2.2vw, 1.5rem);
+            color: var(--text-muted);
+            font-weight: 400;
+            letter-spacing: 0.05em;
+        }
+
+        .cover-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5em;
+            margin-top: clamp(1rem, 2.5vw, 2rem);
+            padding: 0.4em 1em;
+            border: 1px solid var(--border-glow);
+            border-radius: 100px;
+            background: rgba(0,255,204,0.05);
+            font-size: var(--small-size);
+            color: var(--accent-cyan);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .cover-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Two-column layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(1rem, 3vw, 3rem);
+            align-items: start;
+            margin-top: clamp(0.8rem, 2vw, 1.5rem);
+        }
+
+        @media (max-width: 700px) {
+            .two-col { grid-template-columns: 1fr; }
+        }
+
+        /* Story slide */
+        .story-block {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-dim);
+            border-radius: 10px;
+            padding: clamp(0.6rem, 1.5vw, 1.2rem);
+            margin-top: clamp(0.5rem, 1.2vw, 1rem);
+        }
+
+        .story-block .label {
+            font-size: var(--tag-size);
+            color: var(--accent-magenta);
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 0.4em;
+        }
+
+        .story-block p {
+            font-size: var(--body-size);
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .story-block p strong {
+            color: var(--accent-cyan);
+        }
+
+        /* Arch diagram */
+        .arch-diagram {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.4rem, 1vw, 0.8rem);
+            justify-content: center;
+            margin: clamp(0.8rem, 2vw, 1.5rem) 0;
+        }
+
+        .arch-node {
+            text-align: center;
+            padding: clamp(0.4rem, 1vw, 0.7rem) clamp(0.6rem, 1.5vw, 1.2rem);
+            border-radius: 8px;
+            background: rgba(0,255,204,0.06);
+            border: 1px solid var(--border-dim);
+        }
+
+        .arch-node .node-label {
+            font-family: var(--font-display);
+            font-size: clamp(0.7rem, 1.3vw, 0.95rem);
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        .arch-node .node-sub {
+            font-size: clamp(0.55rem, 0.9vw, 0.7rem);
+            color: var(--text-muted);
+            margin-top: 0.2em;
+        }
+
+        .arch-arrow {
+            font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+            color: var(--accent-cyan);
+            opacity: 0.5;
+        }
+
+        /* Pit/Bug cards */
+        .pit-card {
+            background: rgba(255, 0, 170, 0.04);
+            border: 1px solid rgba(255, 0, 170, 0.15);
+            border-radius: 10px;
+            padding: clamp(0.6rem, 1.5vw, 1rem);
+            display: flex;
+            gap: 0.8em;
+            align-items: flex-start;
+        }
+
+        .pit-icon {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            flex-shrink: 0;
+        }
+
+        .pit-content h3 {
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            color: var(--accent-magenta);
+            margin-bottom: 0.3em;
+        }
+
+        .pit-content p {
+            font-size: clamp(0.65rem, 1.1vw, 0.85rem);
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 0.4em;
+        }
+
+        .lesson {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4em;
+            font-size: clamp(0.6rem, 1vw, 0.78rem);
+            color: var(--accent-cyan);
+            background: rgba(0,255,204,0.06);
+            border-radius: 4px;
+            padding: 0.2em 0.6em;
+        }
+
+        /* Knowledge arch */
+        .knowledge-arch {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(0.5rem, 1.2vw, 1rem);
+            margin-top: clamp(0.8rem, 2vw, 1.5rem);
+        }
+
+        .knowledge-card {
+            background: rgba(0,136,255,0.05);
+            border: 1px solid rgba(0,136,255,0.2);
+            border-radius: 10px;
+            padding: clamp(0.6rem, 1.5vw, 1.2rem);
+            text-align: center;
+        }
+
+        .knowledge-card .k-icon { font-size: clamp(1.2rem, 2.5vw, 2rem); margin-bottom: 0.3em; }
+        .knowledge-card h3 { font-size: clamp(0.75rem, 1.4vw, 1rem); color: var(--accent-blue); margin-bottom: 0.3em; font-family: var(--font-display); }
+        .knowledge-card p { font-size: clamp(0.6rem, 1vw, 0.78rem); color: var(--text-muted); line-height: 1.5; }
+
+        /* QA slide */
+        .qa-big {
+            font-family: var(--font-display);
+            font-size: clamp(5rem, 15vw, 12rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            filter: drop-shadow(0 0 40px rgba(0,255,204,0.3));
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Progress Bar -->
+    <div class="progress-bar" id="progressBar" aria-hidden="true"></div>
+
+    <!-- Navigation Dots -->
+    <nav class="nav-dots" id="navDots" aria-label="幻灯片导航"></nav>
+
+    <!-- Keyboard hint -->
+    <div class="keyboard-hint" aria-hidden="true">
+        <span class="key-badge">←</span>
+        <span class="key-badge">→</span>
+        <span style="margin: 0 0.4em;">导航</span>
+        <span class="key-badge">Space</span>
+        <span>下一页</span>
+    </div>
+
+    <!-- ==========================================
+         SLIDE 1: COVER
+         ========================================== -->
+    <section class="slide cover-slide" id="slide-1" aria-label="封面">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-cyan" style="width: clamp(200px,40vw,600px); height: clamp(200px,40vw,600px); top: -10%; right: -5%;"></div>
+        <div class="glow-orb glow-magenta" style="width: clamp(150px,25vw,400px); height: clamp(150px,25vw,400px); bottom: -5%; left: 10%;"></div>
+        <div class="corner-accent corner-tl"></div>
+        <div class="corner-accent corner-br"></div>
+
+        <!-- Horizontal neon line -->
+        <div class="neon-line neon-line-h" style="position:absolute; top:0; left:0; width:60%; opacity:0.4;"></div>
+
+        <div class="slide-content reveal">
+            <div class="cover-badge">OpenClaw 实践分享</div>
+            <h1 class="cover-title" style="margin-top: clamp(1rem, 3vh, 2rem);">
+                <span class="cover-emoji">🦞</span>
+                <span class="neon-text">养龙虾</span><br>
+                <span>心得</span>
+            </h1>
+            <p class="cover-tagline">我的 OpenClaw 实践之旅</p>
+        </div>
+
+        <div class="slide-num">01 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 2: AHA MOMENT — 科技馆
+         ========================================== -->
+    <section class="slide" id="slide-2" aria-label="Aha Moment：科技馆">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-cyan" style="width: clamp(150px,25vw,350px); height: clamp(150px,25vw,350px); top: -5%; left: -5%;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal">Aha Moment</div>
+            <h2 class="reveal">从苏州科技馆开始的故事</h2>
+
+            <div class="two-col" style="margin-top: clamp(0.8rem,2vw,1.5rem);">
+                <div>
+                    <div class="story-block reveal">
+                        <div class="label">🏛️ 科技馆里</div>
+                        <p>带女儿参观，玩了一个<strong>手画 AI 生图</strong>的游戏</p>
+                    </div>
+                    <div class="story-block reveal" style="margin-top: clamp(0.4rem,1vw,0.8rem);">
+                        <div class="label">😕 体验不好</div>
+                        <p>只能限定主题，女儿画的内容和主题不一致，生成结果很奇怪……</p>
+                    </div>
+                </div>
+                <div>
+                    <div class="story-block reveal" style="border-color: rgba(0,255,204,0.2); background: rgba(0,255,204,0.04);">
+                        <div class="label" style="color: var(--accent-cyan);">🏠 回到家</div>
+                        <p>跟<strong>龙虾（AI Agent）</strong>说：<br>
+                        "给我女儿做一个涂鸦转图片的游戏"</p>
+                    </div>
+                    <div class="story-block reveal" style="margin-top: clamp(0.4rem,1vw,0.8rem); border-color: rgba(0,255,204,0.2); background: rgba(0,255,204,0.04);">
+                        <div class="label" style="color: var(--accent-cyan);">🦷 去刷牙了</div>
+                        <p>回来的时候……龙虾做好了。<strong>直接就可以玩！</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-num">02 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 3: AHA MOMENT — 核心洞察
+         ========================================== -->
+    <section class="slide" id="slide-3" aria-label="Aha Moment：核心洞察">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-magenta" style="width: clamp(200px,35vw,500px); height: clamp(200px,35vw,500px); bottom: 0; right: 0;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal">Aha Moment</div>
+            <h2 class="reveal">女儿一连画了好多幅 🎨</h2>
+
+            <div class="callout reveal" style="margin-top: clamp(0.8rem,2vw,1.5rem);">
+                <a href="https://shazhou-ww.github.io/games/doodle-magic/" target="_blank" style="color: var(--accent-cyan); text-decoration: none; font-family: var(--font-display); font-size: clamp(0.8rem,1.5vw,1rem);">
+                    🎮 Doodle Magic →
+                </a>
+                <span style="color: var(--text-muted); font-size: var(--small-size); display: block; margin-top: 0.3em;">shazhou-ww.github.io/games/doodle-magic/</span>
+            </div>
+
+            <div style="margin-top: clamp(0.8rem,2vw,1.5rem);">
+                <p class="reveal" style="font-size: var(--h3-size); color: var(--text-primary); font-family: var(--font-display); font-weight: 600; line-height: 1.4;">
+                    AI Agent 不只是写代码的工具
+                </p>
+                <ul class="bullet-list reveal" style="margin-top: clamp(0.5rem,1.2vw,1rem);">
+                    <li><strong>理解需求</strong> — 模糊描述也能转化为可用产品</li>
+                    <li><strong>做产品决策</strong> — 自己选技术栈、UI 交互方案</li>
+                    <li><strong>直接交付</strong> — 不需要每步都等你确认</li>
+                </ul>
+            </div>
+
+            <div class="callout magenta reveal" style="margin-top: clamp(0.8rem,2vw,1.5rem);">
+                这就是 Aha Moment：<strong>Agent 是助手，不是工具</strong>
+            </div>
+        </div>
+        <div class="slide-num">03 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 4: OPENCLAW VS CODING AGENT — 局限
+         ========================================== -->
+    <section class="slide" id="slide-4" aria-label="OpenClaw vs Coding Agent">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-blue" style="width: clamp(150px,25vw,350px); height: clamp(150px,25vw,350px); top: 20%; left: -5%;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal">对比分析</div>
+            <h2 class="reveal">Coding Agent 的局限</h2>
+
+            <div class="compare-grid reveal" style="margin-top: clamp(0.8rem,2vw,1.5rem);">
+                <div class="neon-card" style="border-color: rgba(255,68,68,0.2); background: rgba(255,68,68,0.04);">
+                    <h3 style="color: #ff6666;">Cursor / Copilot / Claude Code</h3>
+                    <ul class="bullet-list" style="margin-top: 0.6em;">
+                        <li style="font-size: clamp(0.7rem,1.2vw,0.9rem);">何时 plan、何时 code、何时 test<br><span style="font-size: 0.85em; color: var(--text-muted);">— 关键决策都要人来做</span></li>
+                        <li style="font-size: clamp(0.7rem,1.2vw,0.9rem);">只能用机器上已有的工具</li>
+                        <li style="font-size: clamp(0.7rem,1.2vw,0.9rem);">对话式，每一步都需要人确认</li>
+                    </ul>
+                </div>
+                <div class="neon-card" style="border-color: rgba(0,255,204,0.2);">
+                    <h3>OpenClaw</h3>
+                    <ul class="bullet-list" style="margin-top: 0.6em;">
+                        <li style="font-size: clamp(0.7rem,1.2vw,0.9rem);">自己决定 plan/code/test 节奏</li>
+                        <li style="font-size: clamp(0.7rem,1.2vw,0.9rem);">Deal with ambiguity<br><span style="font-size: 0.85em; color: var(--text-muted);">— 模糊需求也能自己摸索</span></li>
+                        <li style="font-size: clamp(0.7rem,1.2vw,0.9rem);">搜索、浏览器、API、发消息、多 Agent 协作</li>
+                        <li style="font-size: clamp(0.7rem,1.2vw,0.9rem);">24/7 运行，主动式工作</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="callout reveal" style="margin-top: clamp(0.6rem,1.5vw,1.2rem);">
+                核心差异：<strong>Coding Agent 是工具，OpenClaw 是助手</strong>
+            </div>
+        </div>
+        <div class="slide-num">04 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 5: OPENCLAW 能力展开
+         ========================================== -->
+    <section class="slide" id="slide-5" aria-label="OpenClaw 能力">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-cyan" style="width: clamp(200px,35vw,500px); height: clamp(200px,35vw,500px); top: -10%; right: -5%;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal">OpenClaw 能力</div>
+            <h2 class="reveal">全能力 Agent 平台</h2>
+
+            <div class="grid reveal" style="grid-template-columns: repeat(3, 1fr); margin-top: clamp(0.8rem,2vw,1.5rem); gap: clamp(0.5rem,1.2vw,1rem);">
+                <div class="neon-card">
+                    <div class="card-icon">🔍</div>
+                    <h3>搜索 & 浏览</h3>
+                    <p>Web search、Browser 控制、页面提取</p>
+                </div>
+                <div class="neon-card">
+                    <div class="card-icon">🔧</div>
+                    <h3>工具执行</h3>
+                    <p>Shell 命令、文件读写、代码运行</p>
+                </div>
+                <div class="neon-card">
+                    <div class="card-icon">🌐</div>
+                    <h3>API 调用</h3>
+                    <p>HTTP、Feishu、GitHub、任意 REST</p>
+                </div>
+                <div class="neon-card">
+                    <div class="card-icon">💬</div>
+                    <h3>主动通信</h3>
+                    <p>发消息、响应消息、主动提醒</p>
+                </div>
+                <div class="neon-card">
+                    <div class="card-icon">🤖</div>
+                    <h3>多 Agent 协作</h3>
+                    <p>Subagent 派发、A2A 跨队通信</p>
+                </div>
+                <div class="neon-card">
+                    <div class="card-icon">⏰</div>
+                    <h3>24/7 自治</h3>
+                    <p>Heartbeat、Cron、主动工作</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-num">05 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 6: 踩坑实录 封面
+         ========================================== -->
+    <section class="slide" id="slide-6" aria-label="踩坑实录封面">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-magenta" style="width: clamp(200px,40vw,600px); height: clamp(200px,40vw,600px); top: -10%; left: -10%;"></div>
+        <div class="glow-orb glow-cyan" style="width: clamp(150px,25vw,350px); height: clamp(150px,25vw,350px); bottom: 0; right: 0;"></div>
+        <div class="corner-accent corner-tl" style="border-color: var(--accent-magenta); box-shadow: 0 0 10px rgba(255,0,170,0.3);"></div>
+        <div class="corner-accent corner-br" style="border-color: var(--accent-magenta); box-shadow: 0 0 10px rgba(255,0,170,0.3);"></div>
+
+        <div class="slide-content section-cover">
+            <h1 class="reveal" style="font-size: clamp(3rem,8vw,7rem); background: linear-gradient(135deg, #ff00aa, #ff6644); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; filter: drop-shadow(0 0 30px rgba(255,0,170,0.5));">
+                踩坑实录
+            </h1>
+            <p class="subtitle reveal" style="color: var(--text-muted); font-size: clamp(1rem,2.5vw,1.8rem); margin-top: 0.8rem;">
+                💥 自由带来的不稳定性
+            </p>
+        </div>
+        <div class="slide-num">06 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 7: 踩坑 1 & 2
+         ========================================== -->
+    <section class="slide" id="slide-7" aria-label="踩坑1和2">
+        <div class="grid-bg"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal" style="color: var(--accent-magenta);">踩坑实录</div>
+            <h2 class="reveal">Gateway 与 LiteLLM 的血泪史</h2>
+
+            <div style="display: flex; flex-direction: column; gap: clamp(0.6rem,1.5vw,1rem); margin-top: clamp(0.8rem,2vw,1.5rem);">
+                <div class="pit-card reveal">
+                    <div class="pit-icon">🔥</div>
+                    <div class="pit-content">
+                        <h3>Gateway 配置三连挂</h3>
+                        <p>改 bind / TLS / port，三次把 Gateway 搞挂。每次都要别人 SSH 进来救……</p>
+                        <span class="lesson">💡 教训：基础设施配置是红线，不要让 Agent 乱碰</span>
+                    </div>
+                </div>
+
+                <div class="pit-card reveal">
+                    <div class="pit-icon">🫁</div>
+                    <div class="pit-content">
+                        <h3>Agent 拔自己氧气管</h3>
+                        <p>迁移 LiteLLM 时，先停旧服务再装新的。结果 LLM 断了，Agent 也一起断了……</p>
+                        <span class="lesson">💡 教训：零停机原则 — 先立新，再拆旧</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-num">07 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 8: 踩坑 3 + 总结
+         ========================================== -->
+    <section class="slide" id="slide-8" aria-label="踩坑3和总结">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-magenta" style="width: clamp(150px,25vw,350px); height: clamp(150px,25vw,350px); bottom: 0; right: 0;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal" style="color: var(--accent-magenta);">踩坑实录</div>
+            <h2 class="reveal">Remote Node 三连失败</h2>
+
+            <div style="display: flex; flex-direction: column; gap: clamp(0.6rem,1.5vw,1rem); margin-top: clamp(0.8rem,2vw,1.5rem);">
+                <div class="pit-card reveal">
+                    <div class="pit-icon">📡</div>
+                    <div class="pit-content">
+                        <h3>Remote Node 方案反复失败</h3>
+                        <p>三次搞挂之后，最终放弃这个方案，改用 A2A 跨队通信替代。</p>
+                        <span class="lesson">💡 教训：有时候换方案比修 bug 更好</span>
+                    </div>
+                </div>
+
+                <div class="neon-card reveal" style="margin-top: clamp(0.3rem,0.8vw,0.6rem);">
+                    <h3 style="color: var(--accent-cyan); font-size: clamp(0.85rem,1.6vw,1.1rem);">踩坑核心规律</h3>
+                    <ul class="bullet-list" style="margin-top: 0.5em;">
+                        <li style="font-size: clamp(0.7rem,1.2vw,0.9rem);"><strong>自由 = 风险</strong>：Agent 越能干，越容易踩红线</li>
+                        <li style="font-size: clamp(0.7rem,1.2vw,0.9rem);"><strong>基础设施加保护</strong>：关键配置不授权给 Agent</li>
+                        <li style="font-size: clamp(0.7rem,1.2vw,0.9rem);"><strong>换方案成本更低</strong>：别在一棵树上吊死</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="slide-num">08 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 9: 经验分享 封面
+         ========================================== -->
+    <section class="slide" id="slide-9" aria-label="经验分享封面">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-cyan" style="width: clamp(200px,40vw,600px); height: clamp(200px,40vw,600px); top: -10%; right: -5%;"></div>
+        <div class="glow-orb glow-blue" style="width: clamp(150px,25vw,350px); height: clamp(150px,25vw,350px); bottom: 10%; left: 5%;"></div>
+        <div class="corner-accent corner-tl"></div>
+        <div class="corner-accent corner-br"></div>
+
+        <div class="slide-content section-cover">
+            <h1 class="reveal" style="font-size: clamp(3rem,8vw,7rem);">
+                <span class="neon-text">经验</span><br>分享
+            </h1>
+            <p class="subtitle reveal" style="margin-top: 0.8rem; font-size: clamp(1rem,2.5vw,1.8rem);">
+                🎯 踩过坑后的真实心得
+            </p>
+        </div>
+        <div class="slide-num">09 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 10: Setup 经验
+         ========================================== -->
+    <section class="slide" id="slide-10" aria-label="Setup经验">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-blue" style="width: clamp(150px,25vw,350px); height: clamp(150px,25vw,350px); top: -5%; left: -5%;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal">Setup 经验</div>
+            <h2 class="reveal">怎么部署最省心？</h2>
+
+            <div class="grid reveal" style="grid-template-columns: repeat(3, 1fr); margin-top: clamp(0.8rem,2vw,1.5rem); gap: clamp(0.5rem,1.2vw,1rem);">
+                <div class="neon-card">
+                    <div class="card-icon">🐧</div>
+                    <h3>Linux / macOS</h3>
+                    <p>最省心的平台，原生支持，工具链完整</p>
+                </div>
+                <div class="neon-card">
+                    <div class="card-icon">🪟</div>
+                    <h3>Windows</h3>
+                    <p>建议用 <strong style="color:var(--accent-cyan)">WSL</strong><br>参考 RAKU 小队实战经验</p>
+                </div>
+                <div class="neon-card">
+                    <div class="card-icon">☁️</div>
+                    <h3>云部署推荐</h3>
+                    <p><strong style="color:var(--accent-cyan)">Azure / VPS</strong><br>稳定 7×24，不担心断电</p>
+                </div>
+            </div>
+
+            <div class="callout reveal" style="margin-top: clamp(0.6rem,1.5vw,1.2rem);">
+                📚 参考：
+                <a href="https://shazhou-ww.github.io/oc-wiki/shared/gateway-setup/" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">
+                    shazhou-ww.github.io/oc-wiki/shared/gateway-setup/
+                </a>
+            </div>
+        </div>
+        <div class="slide-num">10 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 11: 稳定性 — 多龙虾互救
+         ========================================== -->
+    <section class="slide" id="slide-11" aria-label="稳定性：多龙虾互救">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-cyan" style="width: clamp(150px,25vw,350px); height: clamp(150px,25vw,350px); bottom: 0; right: 0;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal">提升稳定性 1/2</div>
+            <h2 class="reveal">多龙虾互相救援 <span style="color:var(--accent-cyan)">★ 最重要</span></h2>
+
+            <div class="two-col reveal" style="margin-top: clamp(0.8rem,2vw,1.5rem); align-items: start;">
+                <div>
+                    <div class="neon-card">
+                        <h3>🔑 云 VM 互给 SSH 授权</h3>
+                        <ul class="bullet-list" style="margin-top: 0.5em;">
+                            <li style="font-size: clamp(0.65rem,1.1vw,0.85rem);">A 挂了，B 能 SSH 过去修</li>
+                            <li style="font-size: clamp(0.65rem,1.1vw,0.85rem);">三队互为后盾：NEKO ↔ KUMA ↔ RAKU</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <div class="arch-diagram" style="justify-content: flex-start;">
+                        <div class="arch-node">
+                            <div class="node-label">🍊 NEKO</div>
+                            <div class="node-sub">neko-vm</div>
+                        </div>
+                        <div class="arch-arrow">⇄</div>
+                        <div class="arch-node">
+                            <div class="node-label">🖊️ KUMA</div>
+                            <div class="node-sub">kuma-vm</div>
+                        </div>
+                        <div class="arch-arrow">⇄</div>
+                        <div class="arch-node">
+                            <div class="node-label">🐲 RAKU</div>
+                            <div class="node-sub">home PC</div>
+                        </div>
+                    </div>
+                    <div class="neon-card" style="margin-top: clamp(0.5rem,1.2vw,1rem);">
+                        <h3>📌 systemd 自动恢复</h3>
+                        <p style="font-size: clamp(0.65rem,1.1vw,0.85rem);">用 <code style="color:var(--accent-cyan)">Restart=always</code>，不用 <code>on-failure</code></p>
+                        <p style="font-size: clamp(0.6rem,1vw,0.78rem); margin-top: 0.3em; color: var(--text-muted);">
+                            <a href="https://shazhou-ww.github.io/oc-wiki/shared/systemd-service-restart-policy/" target="_blank" style="color:var(--accent-cyan); text-decoration:none; font-size: inherit;">oc-wiki/shared/systemd-service-restart-policy/</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-num">11 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 12: 稳定性 — 多模型 Fallback
+         ========================================== -->
+    <section class="slide" id="slide-12" aria-label="稳定性：多模型Fallback">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-blue" style="width: clamp(200px,35vw,500px); height: clamp(200px,35vw,500px); top: -5%; right: -5%;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal">提升稳定性 2/2</div>
+            <h2 class="reveal">多模型 Fallback</h2>
+
+            <div class="neon-card reveal" style="margin-top: clamp(0.8rem,2vw,1.5rem);">
+                <div class="arch-diagram">
+                    <div class="arch-node" style="background: rgba(0,136,255,0.1); border-color: rgba(0,136,255,0.3);">
+                        <div class="node-label" style="color: var(--accent-blue);">LiteLLM</div>
+                        <div class="node-sub">聚合网关</div>
+                    </div>
+                    <div class="arch-arrow" style="color: var(--accent-blue);">→</div>
+                    <div class="arch-node">
+                        <div class="node-label">Claude</div>
+                        <div class="node-sub">Anthropic</div>
+                    </div>
+                    <div class="arch-arrow" style="opacity: 0.3;">|</div>
+                    <div class="arch-node">
+                        <div class="node-label">GPT-4o</div>
+                        <div class="node-sub">OpenAI</div>
+                    </div>
+                    <div class="arch-arrow" style="opacity: 0.3;">|</div>
+                    <div class="arch-node">
+                        <div class="node-label">Gemini</div>
+                        <div class="node-sub">Google</div>
+                    </div>
+                </div>
+            </div>
+
+            <ul class="bullet-list reveal" style="margin-top: clamp(0.6rem,1.5vw,1.2rem);">
+                <li>LiteLLM 统一接入多个模型提供商</li>
+                <li>一个提供商挂了，<strong>自动切换到下一个</strong></li>
+                <li>OpenClaw 无感知，持续运行</li>
+            </ul>
+
+            <div class="callout reveal" style="margin-top: clamp(0.6rem,1.5vw,1.2rem);">
+                🎯 组合技：<strong>多龙虾互救 + systemd + 模型 fallback</strong> = 高可用 Agent 集群
+            </div>
+        </div>
+        <div class="slide-num">12 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 13: 多龙虾知识共享
+         ========================================== -->
+    <section class="slide" id="slide-13" aria-label="多龙虾知识共享">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-blue" style="width: clamp(150px,25vw,350px); height: clamp(150px,25vw,350px); bottom: 0; left: 0;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal">知识管理</div>
+            <h2 class="reveal">多龙虾知识共享</h2>
+
+            <div class="knowledge-arch reveal">
+                <div class="knowledge-card">
+                    <div class="k-icon">🧠</div>
+                    <h3>memory</h3>
+                    <p>每个 Agent 自己的记忆<br>私有，日记式记录</p>
+                </div>
+                <div class="knowledge-card" style="border-color: rgba(0,255,204,0.2); background: rgba(0,255,204,0.05);">
+                    <div class="k-icon">🔗</div>
+                    <h3 style="color: var(--accent-cyan);">memex</h3>
+                    <p>团队共享知识库<br>原子卡片 + 双向链接</p>
+                </div>
+                <div class="knowledge-card">
+                    <div class="k-icon">📖</div>
+                    <h3>oc-wiki</h3>
+                    <p>对外 Blog<br>实践沉淀，公开分享</p>
+                </div>
+            </div>
+
+            <div class="callout reveal" style="margin-top: clamp(0.6rem,1.5vw,1.2rem);">
+                🌐 A2A 跨队通信：NEKO ↔ KUMA ↔ RAKU 三队互联
+                <a href="https://shazhou-ww.github.io/oc-wiki/shared/a2a-setup/" target="_blank" style="display:block; color: var(--accent-cyan); text-decoration: none; font-size: var(--small-size); margin-top: 0.3em;">oc-wiki/shared/a2a-setup/</a>
+            </div>
+        </div>
+        <div class="slide-num">13 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 14: M2 管理模式 — 架构
+         ========================================== -->
+    <section class="slide" id="slide-14" aria-label="M2管理模式架构">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-cyan" style="width: clamp(200px,35vw,500px); height: clamp(200px,35vw,500px); top: -5%; right: -5%;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal">M2 管理模式</div>
+            <h2 class="reveal">别当工兵，当队长</h2>
+
+            <div class="arch-diagram reveal" style="margin-top: clamp(0.8rem,2vw,1.5rem); flex-direction: column; gap: clamp(0.3rem,0.8vw,0.6rem);">
+                <div class="arch-node" style="background: rgba(0,255,204,0.08); border-color: var(--border-glow); width: 100%; max-width: min(80vw, 500px);">
+                    <div class="node-label" style="font-size: clamp(0.85rem,1.6vw,1.1rem);">L0 协调者（你的龙虾）</div>
+                    <div class="node-sub">保持 context 清洁 · 决策 · 对话</div>
+                </div>
+                <div class="arch-arrow" style="transform: rotate(90deg);">→</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; width: 100%; max-width: min(80vw, 500px);">
+                    <div class="arch-node">
+                        <div class="node-label">L1 监工</div>
+                        <div class="node-sub">拆解任务</div>
+                    </div>
+                    <div class="arch-node">
+                        <div class="node-label">L1 监工</div>
+                        <div class="node-sub">拆解任务</div>
+                    </div>
+                </div>
+                <div class="arch-arrow" style="transform: rotate(90deg);">→</div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; width: 100%; max-width: min(80vw, 500px);">
+                    <div class="arch-node" style="background: rgba(255,0,170,0.04); border-color: rgba(255,0,170,0.2);">
+                        <div class="node-label" style="color: var(--text-muted); font-size: clamp(0.6rem,1vw,0.8rem);">L2 工兵</div>
+                    </div>
+                    <div class="arch-node" style="background: rgba(255,0,170,0.04); border-color: rgba(255,0,170,0.2);">
+                        <div class="node-label" style="color: var(--text-muted); font-size: clamp(0.6rem,1vw,0.8rem);">L2 工兵</div>
+                    </div>
+                    <div class="arch-node" style="background: rgba(255,0,170,0.04); border-color: rgba(255,0,170,0.2);">
+                        <div class="node-label" style="color: var(--text-muted); font-size: clamp(0.6rem,1vw,0.8rem);">L2 工兵</div>
+                    </div>
+                    <div class="arch-node" style="background: rgba(255,0,170,0.04); border-color: rgba(255,0,170,0.2);">
+                        <div class="node-label" style="color: var(--text-muted); font-size: clamp(0.6rem,1vw,0.8rem);">L2 工兵</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="callout reveal" style="margin-top: clamp(0.6rem,1.5vw,1.2rem);">
+                Context 隔离是架构问题：协调者的 context 留给<strong>决策和对话</strong>，工作交给工兵
+            </div>
+        </div>
+        <div class="slide-num">14 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 15: M2 管理模式 — 效果对比
+         ========================================== -->
+    <section class="slide" id="slide-15" aria-label="M2管理模式效果">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-magenta" style="width: clamp(150px,25vw,350px); height: clamp(150px,25vw,350px); bottom: 0; left: 0;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal">M2 管理模式</div>
+            <h2 class="reveal">工兵模式 vs M2 模式</h2>
+
+            <div class="metric-row reveal">
+                <div class="metric-item">
+                    <div class="metric-label">并行度</div>
+                    <div class="metric-before">1</div>
+                    <span class="metric-after">3–4</span>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">响应时间</div>
+                    <div class="metric-before">10–30 min</div>
+                    <span class="metric-after">秒回</span>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">每小时任务数</div>
+                    <div class="metric-before">1–2</div>
+                    <span class="metric-after">4–6</span>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Context 状态</div>
+                    <div class="metric-before">混乱</div>
+                    <span class="metric-after" style="font-size: clamp(1rem,2vw,1.5rem);">干净</span>
+                </div>
+            </div>
+
+            <div class="callout reveal" style="margin-top: clamp(0.6rem,1.5vw,1.2rem);">
+                📚 参考：
+                <a href="https://shazhou-ww.github.io/oc-wiki/shared/m2-manager-pattern/" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">oc-wiki/shared/m2-manager-pattern/</a>
+            </div>
+        </div>
+        <div class="slide-num">15 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 16: 小队全家福
+         ========================================== -->
+    <section class="slide" id="slide-16" aria-label="小队全家福">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-cyan" style="width: clamp(150px,25vw,350px); height: clamp(150px,25vw,350px); top: -5%; right: -5%;"></div>
+        <div class="glow-orb glow-magenta" style="width: clamp(150px,20vw,300px); height: clamp(150px,20vw,300px); bottom: 0; left: 0;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal">我们的团队</div>
+            <h2 class="reveal">小队全家福 🎉</h2>
+
+            <div class="team-grid reveal">
+                <div class="team-card" style="border-color: rgba(0,255,204,0.2); background: rgba(0,255,204,0.04);">
+                    <h3>🍊 NEKO 小队</h3>
+                    <div class="team-members">
+                        <div class="team-member">🍊 小橘（协调者）</div>
+                        <div class="team-member">🐱 汤圆 · 代码工程</div>
+                        <div class="team-member">🐾 毛球 · 基础设施</div>
+                        <div class="team-member">🐈 布丁 · 测试</div>
+                        <div class="team-member">🐈‍⬛ 芋泥 · 架构</div>
+                    </div>
+                    <div class="team-footer">neko-vm ☁️</div>
+                </div>
+                <div class="team-card" style="border-color: rgba(0,136,255,0.2); background: rgba(0,136,255,0.04);">
+                    <h3 style="color: var(--accent-blue);">🖊️ KUMA 小队</h3>
+                    <div class="team-members">
+                        <div class="team-member">🖊️ 小墨（协调者）</div>
+                        <div class="team-member">🫘 绿豆</div>
+                        <div class="team-member">🫐 蓝莓</div>
+                        <div class="team-member">🫡 芝麻</div>
+                        <div class="team-member">🥜 花生</div>
+                    </div>
+                    <div class="team-footer" style="color: var(--accent-blue);">kuma-vm ☁️</div>
+                </div>
+                <div class="team-card" style="border-color: rgba(255,0,170,0.2); background: rgba(255,0,170,0.04);">
+                    <h3 style="color: var(--accent-magenta);">🐲 RAKU 小队</h3>
+                    <div class="team-members">
+                        <div class="team-member">🐲 敖丙（协调者）</div>
+                    </div>
+                    <div class="team-footer" style="color: var(--accent-magenta);">Home PC 💪 重活</div>
+                </div>
+            </div>
+
+            <div class="callout reveal" style="margin-top: clamp(0.6rem,1.5vw,1rem); text-align: center;">
+                三队架构：<strong>2台云 VM (7×24)</strong> + <strong>1台 Home PC（重活）</strong>
+            </div>
+        </div>
+        <div class="slide-num">16 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 17: 总结 Key Takeaways
+         ========================================== -->
+    <section class="slide" id="slide-17" aria-label="总结">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-cyan" style="width: clamp(200px,35vw,500px); height: clamp(200px,35vw,500px); top: -10%; right: -5%;"></div>
+
+        <div class="slide-content">
+            <div class="section-label reveal">总结</div>
+            <h2 class="reveal">Key Takeaways</h2>
+
+            <ul class="takeaway-list">
+                <li class="reveal">
+                    <span class="takeaway-num">01</span>
+                    <span>OpenClaw 不只是工具，是助手 — 能处理<strong>模糊需求</strong>，直接交付产品</span>
+                </li>
+                <li class="reveal">
+                    <span class="takeaway-num">02</span>
+                    <span>稳定性靠<strong>多龙虾互救 + systemd + 模型 fallback</strong> 三件套</span>
+                </li>
+                <li class="reveal">
+                    <span class="takeaway-num">03</span>
+                    <span><strong>M2 管理模式</strong>让 Agent 真正成为团队，而不只是单点工具</span>
+                </li>
+                <li class="reveal">
+                    <span class="takeaway-num">04</span>
+                    <span><strong>知识共享</strong>（memory → memex → wiki）让整个团队持续进化</span>
+                </li>
+            </ul>
+        </div>
+        <div class="slide-num">17 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 18: Q&A / 链接
+         ========================================== -->
+    <section class="slide" id="slide-18" aria-label="Q&A和链接">
+        <div class="grid-bg"></div>
+        <div class="glow-orb glow-cyan" style="width: clamp(200px,40vw,600px); height: clamp(200px,40vw,600px); top: -15%; left: -10%;"></div>
+        <div class="glow-orb glow-magenta" style="width: clamp(150px,25vw,350px); height: clamp(150px,25vw,350px); bottom: 0; right: 0;"></div>
+        <div class="corner-accent corner-tl"></div>
+        <div class="corner-accent corner-br"></div>
+
+        <div class="slide-content">
+            <div class="two-col" style="align-items: center;">
+                <div>
+                    <div class="qa-big reveal">Q&amp;A</div>
+                    <p class="reveal" style="color: var(--text-muted); font-size: var(--body-size); margin-top: 0.8em;">
+                        感谢聆听 🦞<br>欢迎交流养龙虾心得
+                    </p>
+                </div>
+                <div>
+                    <ul class="link-list reveal">
+                        <li class="link-item">
+                            <div class="link-icon">🦞</div>
+                            <div class="link-info">
+                                <div class="link-title">OpenClaw</div>
+                                <a href="https://openclaw.ai" target="_blank" class="link-url">openclaw.ai</a>
+                            </div>
+                        </li>
+                        <li class="link-item">
+                            <div class="link-icon">📖</div>
+                            <div class="link-info">
+                                <div class="link-title">我们的 Wiki</div>
+                                <a href="https://shazhou-ww.github.io/oc-wiki/" target="_blank" class="link-url">shazhou-ww.github.io/oc-wiki/</a>
+                            </div>
+                        </li>
+                        <li class="link-item">
+                            <div class="link-icon">🎨</div>
+                            <div class="link-info">
+                                <div class="link-title">Doodle Magic 游戏</div>
+                                <a href="https://shazhou-ww.github.io/games/doodle-magic/" target="_blank" class="link-url">shazhou-ww.github.io/games/doodle-magic/</a>
+                            </div>
+                        </li>
+                        <li class="link-item">
+                            <div class="link-icon">💻</div>
+                            <div class="link-info">
+                                <div class="link-title">GitHub</div>
+                                <a href="https://github.com/shazhou-ww" target="_blank" class="link-url">github.com/shazhou-ww</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="slide-num">18 / 18</div>
+    </section>
+
+    <!-- ==========================================
+         JAVASCRIPT
+         ========================================== -->
+    <script>
+        /**
+         * SlidePresentation
+         * Neon Cyber theme navigation controller
+         * Features: keyboard, touch/swipe, mouse wheel, nav dots, progress bar, reveal animations
+         */
+        class SlidePresentation {
+            constructor() {
+                this.slides = Array.from(document.querySelectorAll('.slide'));
+                this.totalSlides = this.slides.length;
+                this.currentIndex = 0;
+                this.isAnimating = false;
+                this.touchStartY = 0;
+                this.touchStartX = 0;
+
+                this.progressBar = document.getElementById('progressBar');
+                this.navDotsContainer = document.getElementById('navDots');
+
+                this.init();
+            }
+
+            init() {
+                this.buildNavDots();
+                this.setupIntersectionObserver();
+                this.setupKeyboard();
+                this.setupTouch();
+                this.setupWheel();
+                this.updateProgress(0);
+            }
+
+            // Build navigation dots
+            buildNavDots() {
+                this.slides.forEach((slide, i) => {
+                    const dot = document.createElement('button');
+                    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+                    dot.setAttribute('aria-label', `跳转到第 ${i + 1} 页`);
+                    dot.addEventListener('click', () => this.goTo(i));
+                    this.navDotsContainer.appendChild(dot);
+                });
+            }
+
+            // Update progress bar + active dot
+            updateProgress(index) {
+                const pct = this.totalSlides > 1
+                    ? (index / (this.totalSlides - 1)) * 100
+                    : 100;
+                this.progressBar.style.width = pct + '%';
+
+                const dots = this.navDotsContainer.querySelectorAll('.nav-dot');
+                dots.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === index);
+                });
+            }
+
+            // Intersection Observer → trigger reveal animations
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver(
+                    (entries) => {
+                        entries.forEach((entry) => {
+                            if (entry.isIntersecting) {
+                                const idx = this.slides.indexOf(entry.target);
+                                this.currentIndex = idx;
+                                this.updateProgress(idx);
+
+                                // Trigger reveal elements inside this slide
+                                entry.target.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach((el) => {
+                                    el.classList.add('visible');
+                                });
+                            }
+                        });
+                    },
+                    { threshold: 0.5 }
+                );
+
+                this.slides.forEach((slide) => observer.observe(slide));
+            }
+
+            // Navigate to specific slide index
+            goTo(index) {
+                if (index < 0 || index >= this.totalSlides) return;
+                this.slides[index].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // Next / prev
+            next() { this.goTo(this.currentIndex + 1); }
+            prev() { this.goTo(this.currentIndex - 1); }
+
+            // Keyboard navigation
+            setupKeyboard() {
+                document.addEventListener('keydown', (e) => {
+                    switch (e.key) {
+                        case 'ArrowRight':
+                        case 'ArrowDown':
+                        case ' ':
+                            e.preventDefault();
+                            this.next();
+                            break;
+                        case 'ArrowLeft':
+                        case 'ArrowUp':
+                            e.preventDefault();
+                            this.prev();
+                            break;
+                        case 'Home':
+                            e.preventDefault();
+                            this.goTo(0);
+                            break;
+                        case 'End':
+                            e.preventDefault();
+                            this.goTo(this.totalSlides - 1);
+                            break;
+                    }
+                });
+            }
+
+            // Touch/swipe support
+            setupTouch() {
+                document.addEventListener('touchstart', (e) => {
+                    this.touchStartY = e.touches[0].clientY;
+                    this.touchStartX = e.touches[0].clientX;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    const dy = this.touchStartY - e.changedTouches[0].clientY;
+                    const dx = this.touchStartX - e.changedTouches[0].clientX;
+                    const threshold = 50;
+
+                    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > threshold) {
+                        dy > 0 ? this.next() : this.prev();
+                    } else if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
+                        dx > 0 ? this.next() : this.prev();
+                    }
+                }, { passive: true });
+            }
+
+            // Mouse wheel navigation (debounced)
+            setupWheel() {
+                let wheelTimeout = null;
+                document.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    if (wheelTimeout) return;
+                    wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 800);
+                    e.deltaY > 0 ? this.next() : this.prev();
+                }, { passive: false });
+            }
+        }
+
+        // Boot
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+        });
+    </script>
+</body>
+</html>
